@@ -56,7 +56,7 @@ The mission is to make the playbook itself come alive. Contracts can provide evi
 | WP7 Proposed Update Workflow | Done | Proposed updates are persisted, approve applies vault changes, commits affected files, and reindexes. |
 | WP8 Frontend Integration | Done | Existing Lovable/TanStack app simplified and bound to live backend contracts. |
 | WP9 Ingestion MVP | Done | Upload API creates reviewable ingest drafts; frontend can upload, list drafts, and publish to vault/reindex. |
-| WP10 Demo Hardening | Pending | Reset, env validation, predictable demo script, polish. |
+| WP10 Demo Hardening | Done | Reset script, env validation, demo runbook, predictable questions. |
 
 ## Decision Defaults
 
@@ -357,6 +357,8 @@ Current critical path before WP5:
 
 ### WP10: Demo Hardening
 
+**Status:** Done
+
 **Owner lane:** All lanes
 
 **Scope**
@@ -371,6 +373,13 @@ Current critical path before WP5:
 - Fresh clone can be brought to demo state with documented commands.
 - Demo can be repeated without manually cleaning generated state.
 - The core script works under time pressure.
+
+**Implemented**
+
+- `scripts/validate_demo_env.py` performs local preflight checks for source files, runtime paths, frontend metadata, and Gemini credential configuration.
+- `scripts/reset_demo.py` resets the default NDA vault from `Sample NDA Playbook.docx`, clears review-state drafts by default, and rebuilds the Chroma index.
+- `scripts/dev.py validate-demo` and `scripts/dev.py reset-demo` provide short, repeatable commands.
+- `docs/DEMO_RUNBOOK.md` documents setup, preflight, reset, startup, sample questions, and the judged demo flow.
 
 ## First 48-Hour Path
 

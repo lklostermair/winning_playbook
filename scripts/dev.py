@@ -1,5 +1,6 @@
 import argparse
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -25,6 +26,10 @@ COMMANDS = {
     "frontend-install": ["npm", "install"],
     "frontend-build": ["npm", "run", "build"],
     "frontend-lint": ["npm", "run", "lint"],
+    "reset-demo": [sys.executable, "scripts/reset_demo.py"],
+    "smoke-demo": [sys.executable, "scripts/smoke_demo.py"],
+    "test": [sys.executable, "-m", "unittest", "discover", "-s", "tests"],
+    "validate-demo": [sys.executable, "scripts/validate_demo_env.py", "--strict-ai"],
 }
 
 

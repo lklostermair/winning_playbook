@@ -11,6 +11,8 @@ Playbook Engine for Legal Hackathon
 - `vault/` - Markdown/JSON playbook source of truth
 - `chroma/` - local disposable vector index
 
+The `chroma/` contents are generated and disposable. Keep `chroma/.gitkeep`, but it is safe to delete the other files and rebuild them with `uv run python scripts/dev.py reset-demo` or the `/reindex` API.
+
 ## Local Backend Startup
 
 Start the full local app with one command:
@@ -54,10 +56,10 @@ Configuration is documented in `.env.example`. The backend creates the configure
 Extract rules from a playbook source and write them to the Markdown/JSON vault:
 
 ```bash
-uv run python scripts/seed_demo_data.py data/examples/Sample\ NDA\ Playbook.csv.xlsx
+uv run python scripts/seed_demo_data.py
 ```
 
-The extractor accepts `.docx`, `.pdf`, `.xlsx`, and `.csv` sources. By default it runs in `hybrid` mode: it uses Gemini through Vertex AI and ADC when `GOOGLE_CLOUD_PROJECT` is configured, otherwise it falls back to local heuristics so the demo remains runnable. `GEMINI_API_KEY` is still supported as a secondary fallback.
+The extractor accepts `.docx`, `.pdf`, `.xlsx`, and `.csv` sources. By default it runs in `hybrid` mode: it uses Gemini through Vertex AI and ADC when `GOOGLE_CLOUD_PROJECT` is configured, and falls back to local heuristics when Gemini is unavailable so the demo remains runnable. `GEMINI_API_KEY` is still supported as a secondary fallback.
 
 Recommended Vertex AI defaults:
 
@@ -65,6 +67,29 @@ Recommended Vertex AI defaults:
 GOOGLE_CLOUD_PROJECT=winning-playbook-2026
 GOOGLE_CLOUD_LOCATION=europe-west4
 GEMINI_MODEL=gemini-2.5-flash
+```
+
+## Demo Reset
+
+Run the preflight check and reset the demo before presenting:
+
+```bash
+uv run python scripts/dev.py validate-demo
+uv run python scripts/dev.py reset-demo
+```
+
+`reset-demo` restores the NDA vault from `data/examples/Sample NDA Playbook.docx`, clears review-state drafts for that playbook, and rebuilds the Chroma index. For an offline extraction smoke test:
+
+```bash
+uv run python scripts/reset_demo.py --mode heuristic --skip-index
+```
+
+The detailed demo checklist lives in `docs/DEMO_RUNBOOK.md`.
+
+When the API is running, use the smoke test for the core demo endpoints:
+
+```bash
+uv run python scripts/dev.py smoke-demo
 ```
 
 ## Local Frontend Startup

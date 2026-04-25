@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 import os
 import re
 import time
@@ -10,6 +11,7 @@ from zipfile import ZipFile
 from xml.etree import ElementTree
 
 from google import genai
+from google.auth.exceptions import GoogleAuthError
 from google.genai import errors
 from google.genai import types
 from openpyxl import load_workbook
@@ -23,6 +25,7 @@ ExtractionMode = Literal["hybrid", "llm", "heuristic"]
 
 WORDPROCESSINGML_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 SUPPORTED_SUFFIXES = {".xlsx", ".csv", ".docx", ".pdf"}
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -58,9 +61,15 @@ class PlaybookExtractionService:
     def extract_rules(self, source_paths: list[Path]) -> list[RuleTemplate]:
         documents = [parse_document(path) for path in source_paths]
         if self.mode in ("hybrid", "llm") and self._can_use_gemini():
-            rules = self._extract_with_gemini(documents)
-            if rules:
-                return self._dedupe_rule_ids(rules)
+            try:
+                rules = self._extract_with_gemini(documents)
+            except (errors.APIError, GoogleAuthError, PlaybookExtractionError, ValueError) as exc:
+                if self.mode == "llm":
+                    raise
+                logger.warning("Gemini extraction failed; falling back to heuristics: %s", exc)
+            else:
+                if rules:
+                    return self._dedupe_rule_ids(rules)
         if self.mode == "llm":
             raise PlaybookExtractionError(
                 "LLM extraction requested, but Gemini is not configured. "
@@ -133,6 +142,8 @@ class PlaybookExtractionService:
 
 
 def parse_document(path: Path) -> ParsedDocument:
+    if not path.exists():
+        raise PlaybookExtractionError(f"Playbook source file was not found: {path}")
     suffix = path.suffix.lower()
     if suffix not in SUPPORTED_SUFFIXES:
         raise PlaybookExtractionError(f"Unsupported playbook source format: {path}")

@@ -203,6 +203,12 @@ export async function getIngests(playbookId: string) {
   return response.drafts;
 }
 
+export async function getIngest(playbookId: string, ingestId: string) {
+  return request<IngestDraftDetail>(
+    `/ingest/${encodeURIComponent(playbookId)}/${encodeURIComponent(ingestId)}`,
+  );
+}
+
 export async function publishIngest(playbookId: string, ingestId: string) {
   return request<PublishIngestResponse>(
     `/ingest/${encodeURIComponent(playbookId)}/${encodeURIComponent(ingestId)}/publish`,
