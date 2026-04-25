@@ -1,0 +1,32 @@
+{
+  "playbook_id": "ndacontracts",
+  "rule_id": "term-survival-return-of-information",
+  "topic": "Term, Survival & Return of Information",
+  "standard_position": "The agreement has a defined term (e.g., 1-2 years), and confidentiality obligations survive for a period (e.g., 3 years) from the date of each individual disclosure. Upon written request or termination, the Receiving Party must return or destroy all Confidential Information (including copies, notes, summaries, analyses) and provide written certification signed by an authorized officer.",
+  "fallback_positions": [
+    "Agreement term: 1 year with auto-renewal (60 days notice for non-renewal) vs. 2 years fixed (30 days notice for termination).",
+    "Specify 'authorized officer' or 'senior officer' for certification of return/destruction.",
+    "Explicitly include 'compilations' in the list of items to be returned/destroyed."
+  ],
+  "red_line": "Indefinite confidentiality survival period, refusal to return/destroy CI, or refusal to provide written certification of compliance.",
+  "decision_logic": "The agreement term and auto-renewal can be adjusted based on the expected duration of the business opportunity. The survival period for confidentiality is consistently 3 years across contracts, which is a good standard to maintain. The specific officer title for certification is a minor point.",
+  "escalation_logic": "Escalate if the counterparty proposes a very short or very long (e.g., indefinite) survival period for confidentiality, or refuses to certify destruction.",
+  "rationale": "Both contracts have similar survival periods for confidentiality (3 years from disclosure). Agreement terms vary (1-2 years, with/without auto-renewal). Return/destruction clauses are nearly identical, with minor variations in the list of items and officer title for certification.",
+  "negotiation_tips": [
+    "Aim for a 3-year survival period for confidentiality obligations.",
+    "Be flexible on the initial agreement term and auto-renewal, but ensure clear termination/non-renewal notice periods.",
+    "Always insist on written certification of return/destruction to maintain auditability."
+  ],
+  "suggested_language": "This Agreement shall remain in effect for a period of [one (1) year from the Effective Date and shall automatically renew for successive one (1) year periods unless either Party provides written notice of non-renewal at least sixty (60) days prior to the end of the then-current term / two (2) years from the Effective Date, unless terminated earlier by either Party upon thirty (30) days' written notice]. The confidentiality obligations shall survive for a period of three (3) years from the date of each individual disclosure. Upon written request or termination of this Agreement, the Receiving Party shall within thirty (30) days return or destroy all Confidential Information, including all copies, notes, summaries, analyses, [and compilations], and shall provide written certification of such return or destruction signed by an [authorized/senior] officer.",
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/ndacontracts/draft_ingest/ingest_20260425203228_9b37d106/sources/A5_Hoffmann Logistics GmbH_NDA.pdf",
+      "location": "Section 9, 10"
+    },
+    {
+      "filename": "vault/ndacontracts/draft_ingest/ingest_20260425203228_9b37d106/sources/A4_Crawford_Ried_Engineering_NDA.pdf",
+      "location": "Section 9, 10"
+    }
+  ]
+}

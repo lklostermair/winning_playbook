@@ -1,0 +1,30 @@
+{
+  "playbook_id": "ndacontracts",
+  "rule_id": "confidential-information-scope-exceptions",
+  "topic": "Confidential Information Scope & Exceptions",
+  "standard_position": "Confidential Information (CI) is broadly defined to include all forms of information, whether marked or not. Standard exceptions include information that is publicly available (through no fault of the Receiving Party), was in the Receiving Party's prior possession, or received from a third party without confidentiality obligations.",
+  "fallback_positions": [
+    "Require 'written records' or 'clear and convincing evidence' for the prior possession exception.",
+    "Add 'independently developed' by the Receiving Party as an exception to CI."
+  ],
+  "red_line": "Any attempt to significantly narrow the definition of Confidential Information or remove standard exceptions (publicly available, prior possession, third-party source).",
+  "decision_logic": "The 'independently developed' exception is a common and reasonable addition, especially if the Receiving Party has ongoing R&D. Evidence requirements for prior possession (written records vs. clear and convincing evidence) can be negotiated based on risk tolerance.",
+  "escalation_logic": "Escalate if the counterparty attempts to remove fundamental exceptions or make the definition of CI overly restrictive.",
+  "rationale": "Both contracts use a broad definition of CI. A4 includes 'independently developed' which is a standard carve-out. A5 specifies 'written records' for prior possession, while A4 specifies 'clear and convincing evidence', indicating a slight variation in proof burden.",
+  "negotiation_tips": [
+    "Be prepared to accept 'independently developed' as an exception if the counterparty insists, as it's a reasonable protection for them.",
+    "Always ensure that 'prior possession' requires demonstrable proof to prevent abuse."
+  ],
+  "suggested_language": "Confidential Information does not include information that the Receiving Party can demonstrate by [written records/clear and convincing evidence]: (a) is or becomes publicly available through no fault of the Receiving Party; (b) was already in the Receiving Party's lawful possession prior to disclosure; (c) is received from a third party who is not under a confidentiality obligation to the Disclosing Party and who has the lawful right to make such disclosure; or (d) is independently developed by the Receiving Party without use of or reference to the Disclosing Party's Confidential Information.",
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/ndacontracts/draft_ingest/ingest_20260425203228_9b37d106/sources/A5_Hoffmann Logistics GmbH_NDA.pdf",
+      "location": "Section 2, 3"
+    },
+    {
+      "filename": "vault/ndacontracts/draft_ingest/ingest_20260425203228_9b37d106/sources/A4_Crawford_Ried_Engineering_NDA.pdf",
+      "location": "Section 2, 3"
+    }
+  ]
+}
