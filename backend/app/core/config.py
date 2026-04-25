@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     chroma_dir: Path = Field(default=Path("./chroma"), alias="CHROMA_DIR")
     default_playbook_id: str = Field(default="nda", alias="DEFAULT_PLAYBOOK_ID")
 
-    openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
     google_application_credentials: str | None = Field(
         default=None,
         alias="GOOGLE_APPLICATION_CREDENTIALS",
@@ -26,10 +25,10 @@ class Settings(BaseSettings):
     google_cloud_location: str = Field(default="europe-west4", alias="GOOGLE_CLOUD_LOCATION")
     gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
     gemini_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_MODEL")
-    openai_embedding_model: str = Field(
-        default="text-embedding-3-small",
-        alias="OPENAI_EMBEDDING_MODEL",
-    )
+    embedding_provider: str = Field(default="gemini", alias="EMBEDDING_PROVIDER")
+    gemini_embedding_model: str = Field(default="gemini-embedding-001", alias="GEMINI_EMBEDDING_MODEL")
+    gemini_embedding_location: str = Field(default="global", alias="GEMINI_EMBEDDING_LOCATION")
+    gemini_embedding_dimensions: int = Field(default=768, alias="GEMINI_EMBEDDING_DIMENSIONS")
 
     def ensure_runtime_directories(self) -> None:
         for directory in (self.vault_dir, self.data_dir, self.chroma_dir):

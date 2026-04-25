@@ -33,23 +33,41 @@ The mission is to make the playbook itself come alive. Contracts can provide evi
 
 - The repo started from specs and sample data: `README.md`, `docs/PROJECT_SPEC.md`, `docs/IMPLEMENTATION_PLAN.md`, and `data/examples/`.
 - The challenge description is `data/examples/Siemens Munich_Hacking_Legal_2026_Challenge-1.pdf` and frames this as a living playbook engine, not a contract-review tool.
-- WP0 now provides the initial FastAPI backend shell and scaffold directories. There is still no frontend, populated vault, Chroma index, ingestion script, or Docker setup yet.
-- The strongest deterministic seed source is `data/examples/Sample NDA Playbook.csv.xlsx`.
-- The richer narrative source is `data/examples/Sample NDA Playbook.docx`.
+- WP0-WP4 are complete: FastAPI scaffold, API schemas/stubs, vault service, adaptive extraction, Gemini-generated `nda` vault, and Git metadata service.
+- There is still no frontend, Chroma index, grounded RAG answer flow, update approval implementation, or Docker setup.
+- The default demo vault is generated from `data/examples/Sample NDA Playbook.docx` using Gemini on Vertex AI with ADC.
+- `data/examples/Sample NDA Playbook.csv.xlsx` remains a structured fallback/test source for adaptive extraction.
 - The sample Standard NDA and negotiated/customer NDA docx/pdf pairs are supplementary material for testing and discovering update signals. They are not the main input and should not turn the MVP into bulk comparison.
-- The actual sample NDA playbook has 14 clauses. Ignore older/spec examples that mention 8 generated rules.
+- The current Gemini extraction yields 14 NDA rules, but the extractor should not assume a fixed rule count for future playbooks.
 - Some sample filenames contain non-breaking spaces. Any parser or copy script must use path-safe handling and avoid manual string assumptions.
 - The worktree is already dirty/untracked. Do not revert or overwrite unrelated edits.
+
+## Build Status
+
+| Work Package | Status | Notes |
+|---|---|---|
+| WP0 Repo Scaffold | Done | `uv` project, FastAPI app shell, health endpoint, env template, runtime dirs. |
+| WP1 Schemas/API Contracts | Done | Stable Pydantic schemas and stub routes for playbooks, ask, updates, and reindex. |
+| WP2 Vault Service | Done | Markdown/JSON vault read/write/list/update plus rule detail endpoint. |
+| WP3 Adaptive Playbook Extraction | Done | `.docx`, `.pdf`, `.xlsx`, `.csv`; Gemini via Vertex ADC with heuristic fallback; real `vault/nda` seeded by Gemini. |
+| WP4 Git Metadata Service | Done | Git history metadata exposed on rule APIs and ask source stubs; commit helper ready for WP7. |
+| WP5 Retrieval And Indexing | Next | Build Chroma index from vault Markdown sections using Gemini embeddings and wire `/reindex`. |
+| WP6 Ask Playbook | Pending | Replace ask stub with retrieval-grounded Gemini answer flow and confidence heuristic. |
+| WP7 Proposed Update Workflow | Pending | Apply approved changes to vault, commit through Git service, then reindex. |
+| WP8 Frontend Integration | Pending | Lovable React UI against stable backend contracts. |
+| WP9 Ingestion MVP | Partially covered | Adaptive extraction exists; upload/ingest API workflow still pending. |
+| WP10 Demo Hardening | Pending | Reset, env validation, predictable demo script, polish. |
 
 ## Decision Defaults
 
 - **Source of truth:** Markdown vault plus structured JSON. Chroma is disposable.
-- **Seed strategy:** Generate the first vault from XLSX deterministically. Use DOCX narrative only to enrich rule text where easy.
-- **Rule count:** Treat the NDA seed as 14 clauses.
+- **Seed strategy:** Generate the default demo vault from the narrative DOCX with Gemini on Vertex AI via ADC; keep heuristic extraction as local fallback.
+- **Rule count:** Do not hard-code rule count. Current NDA extraction yields 14 rules.
 - **Playbook scope:** Demo with `nda`, but design schemas and vault layout as reusable playbook templates.
-- **Ingestion scope:** Seeded XLSX ingestion first; broad DOCX/PDF ingestion after the core loop works.
+- **Ingestion scope:** Adaptive playbook extraction exists for DOCX/PDF/XLSX/CSV; upload/ingest API workflow can be added after the core ask/update loop.
 - **Contract corpus scope:** Negotiated contracts are optional learning/update-signal inputs, not the authoritative playbook source.
-- **Provider portability:** Keep generation and embedding behind service interfaces. Gemini/OpenAI choices must be swappable and must not leak into domain schemas or vault format.
+- **Embedding default:** Use Gemini embeddings on Vertex AI via ADC: `gemini-embedding-001`, `global`, 768 dimensions.
+- **Provider portability:** Keep generation and embedding behind service interfaces. Provider choices must be swappable and must not leak into domain schemas or vault format.
 - **Confidence:** Heuristic only: retrieval score, source count, direct-answer check, and LLM self-check. It is not legal certainty.
 - **Git:** Approved playbook changes create commits. In development, allow a clear fallback/error if Git author or Docker-mounted `.git` is missing.
 - **Dual UX:** Business users get plain-language answers. Lawyers get source traceability, verification views, diffs, metadata, and approval controls.
@@ -62,7 +80,7 @@ WP0 repo scaffold blocks all implementation.
 
 WP1 schemas and API contracts unblock backend/frontend parallel work.
 
-WP2 vault service and WP3 seed data unblock WP4 Git metadata and WP5 RAG.
+WP2 vault service and WP3 adaptive extraction unblock WP4 Git metadata and WP5 RAG.
 
 WP4 Git metadata and WP5 RAG unblock WP6 Ask Playbook.
 
@@ -74,9 +92,17 @@ WP8 frontend integration can start after WP1 with mocked data, then bind to WP6/
 
 WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/update loop is stable.
 
+Current critical path before WP5:
+
+- `vault/nda` contains Gemini-extracted Markdown/JSON rules.
+- Rule APIs return Git metadata; if vault files are uncommitted, metadata reports `uncommitted` until committed.
+- `/reindex` exists only as a stub and should become real in WP5.
+
 ## Work Packages
 
 ### WP0: Repo Scaffold
+
+**Status:** Done
 
 **Owner lane:** Backend/RAG
 
@@ -93,6 +119,8 @@ WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/updat
 - Empty vault/index directories do not crash startup.
 
 ### WP1: Domain Schemas And API Contracts
+
+**Status:** Done
 
 **Owner lane:** Backend/RAG, Frontend Core
 
@@ -118,6 +146,8 @@ WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/updat
 - API names match `docs/PROJECT_SPEC.md` unless implementation discovers a concrete blocker.
 
 ### WP2: Vault Service
+
+**Status:** Done
 
 **Owner lane:** Backend/RAG
 
@@ -147,6 +177,8 @@ WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/updat
 
 ### WP3: Adaptive Playbook Extraction
 
+**Status:** Done
+
 **Owner lane:** Backend/RAG
 
 **Scope**
@@ -167,6 +199,8 @@ WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/updat
 
 ### WP4: Git Metadata Service
 
+**Status:** Done
+
 **Owner lane:** Backend/RAG
 
 **Scope**
@@ -184,15 +218,26 @@ WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/updat
 
 ### WP5: Retrieval And Indexing
 
+**Status:** Next
+
 **Owner lane:** Backend/RAG
 
 **Scope**
 
 - Chunk Markdown by rule section.
-- Embed chunks with OpenAI embeddings.
+- Embed chunks with Gemini embeddings on Vertex AI via ADC.
 - Persist vectors in local Chroma.
 - Filter retrieval by `playbook_id`.
 - Add `POST /reindex`.
+
+**Entry State**
+
+- Use `vault/nda/rules/*.md` as the source of truth.
+- Chunk by Markdown headings generated by `VaultService.render_rule_markdown`.
+- Use `gemini-embedding-001` with `RETRIEVAL_DOCUMENT` for chunks and `RETRIEVAL_QUERY` for questions.
+- Default to 768-dimensional vectors to keep Chroma compact.
+- Include Git metadata from `GitService` in chunk metadata.
+- Keep Chroma disposable and rebuildable from vault contents.
 
 **Acceptance Criteria**
 
@@ -268,15 +313,15 @@ WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/updat
 
 **Scope**
 
-- Keep XLSX ingestion production-like enough for the provided NDA playbook.
-- Add basic DOCX/PDF parsers only after seeded vault and update loop work.
+- Wrap the existing adaptive extraction service in upload/ingest APIs.
+- Keep DOCX/PDF/XLSX/CSV extraction reviewable before it becomes official guidance.
 - Use negotiated/customer NDAs only as supplementary learning/update-signal corpus.
 - Keep the ingestion workflow template-driven so another Word/Excel playbook can be mapped into the same structured rule schema.
 
 **Acceptance Criteria**
 
-- XLSX ingestion can recreate the seeded 14-rule vault.
-- DOCX/PDF parser failures do not block the core demo.
+- Upload/ingest can recreate or refresh a vault from supported playbook sources.
+- Parser/model extraction failures do not block the core demo.
 - Any unsupported input returns a useful error.
 - The importer produces reviewable draft rules before they become approved guidance.
 
@@ -308,8 +353,8 @@ WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/updat
 ### Hours 6-14
 
 - Implement vault service.
-- Implement XLSX seed script.
-- Generate 14 NDA rule Markdown files and structured metadata.
+- Implement adaptive extraction script.
+- Generate NDA rule Markdown files and structured metadata from DOCX/Excel/PDF/CSV sources.
 - Add rule listing and rule detail API.
 
 ### Hours 14-24
@@ -334,9 +379,9 @@ WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/updat
 ## Practical Demo Script
 
 1. Start backend and frontend locally.
-2. Reset demo data from the sample XLSX.
+2. Reset demo data from the sample playbook source using adaptive extraction.
 3. Select `NDA` playbook.
-4. Open rule viewer and show the 14 seeded clauses.
+4. Open rule viewer and show the extracted clauses.
 5. Show the lawyer verification view: original source reference, structured fields, Markdown output, and Git metadata.
 6. Ask: `Can we accept unlimited liability?`
 7. Show answer grounded in the liability rule.
@@ -354,8 +399,8 @@ WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/updat
 
 ## Risks And Mitigations
 
-- **Ingestion scope risk:** Start with deterministic XLSX seeding. Defer broad DOCX/PDF extraction.
-- **Rule-count mismatch:** Use the actual 14-clause sample playbook as the acceptance target.
+- **Extraction quality risk:** Use Gemini extraction for richer playbooks and keep heuristic extraction as a runnable fallback.
+- **Rule-count mismatch:** Do not assume a fixed rule count; validate quality by source coverage and lawyer-reviewable output.
 - **Docker/Git risk:** Support direct local dev first. Treat Docker as packaging, not the first milestone.
 - **Filename risk:** Use `pathlib` and discovered file paths; do not hand-type paths with special spaces.
 - **Confidence risk:** Label it as source-support confidence, not legal certainty.
