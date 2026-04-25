@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     gemini_embedding_model: str = Field(default="gemini-embedding-001", alias="GEMINI_EMBEDDING_MODEL")
     gemini_embedding_location: str = Field(default="global", alias="GEMINI_EMBEDDING_LOCATION")
     gemini_embedding_dimensions: int = Field(default=768, alias="GEMINI_EMBEDDING_DIMENSIONS")
+    gemini_embedding_batch_size: int = Field(default=16, alias="GEMINI_EMBEDDING_BATCH_SIZE")
+    gemini_embedding_request_delay_seconds: float = Field(
+        default=0.1,
+        alias="GEMINI_EMBEDDING_REQUEST_DELAY_SECONDS",
+    )
 
     def ensure_runtime_directories(self) -> None:
         for directory in (self.vault_dir, self.data_dir, self.chroma_dir):
