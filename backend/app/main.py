@@ -3,7 +3,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api.routes_chat import router as chat_router
 from app.api.routes_health import router as health_router
+from app.api.routes_playbooks import router as playbooks_router
+from app.api.routes_reindex import router as reindex_router
+from app.api.routes_updates import router as updates_router
 from app.core.config import get_settings
 
 
@@ -18,6 +22,10 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.include_router(health_router)
+    app.include_router(playbooks_router)
+    app.include_router(chat_router)
+    app.include_router(updates_router)
+    app.include_router(reindex_router)
     return app
 
 
