@@ -11,7 +11,7 @@ All four standard exceptions must be included: (i) publicly available informatio
 Never accept an NDA with fewer than three standard exceptions. The "independently developed" exception is critical for diversified organizations
 
 ## Decision Logic
-Standard exceptions protect the receiving party from being held liable for information it already knew, independently developed, or received from other legitimate sources. Without these exceptions, a large, diversified organization could inadvertently breach the NDA simply by using knowledge it already possessed. Some NDAs omit one or more standard exceptions — particularly the "independently developed" exception. For large organizations with multiple business units conducting parallel R&D, this omission creates significant risk.
+_Not specified._
 
 ## Escalation Logic
 If the "independently developed" exception is missing and cannot be added, escalate.

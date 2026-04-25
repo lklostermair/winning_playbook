@@ -11,7 +11,7 @@ Explicit statement that no license, right, or interest in any IP is granted or i
 Reject any clause that transfers IP ownership, grants an irrevocable license, or assigns rights to inventions or know-how arising from the information exchange
 
 ## Decision Logic
-When confidential information is exchanged — particularly between engineering or R&D teams — new ideas, inventions, or improvements may arise. The NDA must be clear that sharing information does not transfer ownership of, or grant licenses to, any intellectual property. Some NDAs include clauses that grant the receiving party a license to use the disclosed IP, or that assign ownership of any jointly developed IP to one party. Others may be silent on IP, creating ambiguity that could be exploited later.
+_Not specified._
 
 ## Escalation Logic
 Any IP assignment, license grant, or joint ownership clause must be escalated to IP counsel.
@@ -27,7 +27,7 @@ _Not specified._
 
 ## Metadata
 - Playbook: nda
-- Rule ID: intellectual-property-rights-including-know-how
+- Rule ID: intellectual-property-rights
 - Status: approved
 - Source Documents:
   - data/examples/Sample NDA Playbook.docx (Clause 9)

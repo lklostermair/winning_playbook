@@ -11,10 +11,10 @@ No non-solicitation clause in the NDA. Employment matters should not be governed
 Reject any non-solicitation clause that applies to unsolicited applications, covers all employees regardless of involvement, or includes a contractual penalty
 
 ## Decision Logic
-Some NDAs include clauses prohibiting one or both parties from soliciting or hiring the other party's employees. While the intent may be reasonable, broadly worded non-solicitation clauses can create liability even when an employee applies on their own initiative or is hired by a department unaware of the NDA. Non-solicitation clauses that are broadly worded (covering all employees, not just those involved in the Purpose), that extend for long periods, or that are accompanied by contractual penalties.
+_Not specified._
 
 ## Escalation Logic
-Any non-solicitation clause with a penalty should be escalated.
+Any non-solicitation clause with a penalty should be reviewed by senior legal before acceptance.
 
 ## Rationale
 Some NDAs include clauses prohibiting one or both parties from soliciting or hiring the other party's employees. While the intent may be reasonable, broadly worded non-solicitation clauses can create liability even when an employee applies on their own initiative or is hired by a department unaware of the NDA.

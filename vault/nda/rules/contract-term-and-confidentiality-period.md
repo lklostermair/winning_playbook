@@ -11,7 +11,7 @@ NDA term of 2–3 years (with option to terminate on notice). Confidentiality pe
 Reject perpetual or indefinite confidentiality obligations. Reject any structure where the confidentiality period expires upon termination of the NDA (leaving disclosed information unprotected)
 
 ## Decision Logic
-Two distinct timeframes must be considered: (1) the term of the NDA itself (during which information is exchanged), and (2) the confidentiality period (during which disclosed information must be kept confidential). These should be clearly defined and separated. Some NDAs link the confidentiality period to the term of the agreement, or impose perpetual confidentiality obligations. Perpetual obligations are operationally unmanageable and create indefinite compliance burdens.
+_Not specified._
 
 ## Escalation Logic
 If the counterparty insists on perpetual confidentiality or a confidentiality period shorter than 3 years, escalate.

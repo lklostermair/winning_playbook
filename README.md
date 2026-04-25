@@ -1,115 +1,154 @@
-# winning_playbook
-Playbook Engine for Legal Hackathon
+# Living Playbook
 
-## Repository Layout
+Living Playbook is a local demo app that turns legal playbooks from Word, PDF, Excel, or CSV into an auditable Markdown/JSON vault. Users can ask questions, see source-grounded answers, propose updates, and let lawyers approve changes that are committed and reindexed.
 
-- `docs/` - project specification and implementation plan
-- `backend/` - FastAPI backend
-- `data/examples/` - provided challenge, playbook, and NDA sample files
-- `data/raw/` - uploaded raw files during local runs
-- `data/processed/` - generated intermediate artifacts
-- `vault/` - Markdown/JSON playbook source of truth
-- `chroma/` - local disposable vector index
+## What You Can Do
 
-The `chroma/` contents are generated and disposable. Keep `chroma/.gitkeep`, but it is safe to delete the other files and rebuild them with `uv run python scripts/dev.py reset-demo` or the `/reindex` API.
+- Upload or seed a playbook into `vault/`.
+- Ask questions such as `Can we accept unlimited liability?`
+- See cited sources, confidence, Git author, and change time.
+- Propose a playbook update.
+- Approve or reject updates as Lawyer/Admin.
+- Rebuild the retrieval index from the vault at any time.
 
-## Local Backend Startup
+## Requirements
 
-Start the full local app with one command:
+- Python 3.12+
+- `uv`
+- Node.js and npm
+- Google Cloud ADC for Gemini/Vertex AI, or `GEMINI_API_KEY`
+
+The project uses:
+
+- FastAPI backend on `http://127.0.0.1:8000`
+- TanStack/Vite frontend on `http://localhost:5173`
+- Chroma as a local disposable vector index
+- Gemini for extraction, answer generation, and embeddings
+
+## First-Time Setup
+
+```bash
+uv sync
+uv run python scripts/dev.py frontend-install
+```
+
+Create `.env` from `.env.example`, or export the same variables in your shell.
+
+Recommended ADC setup:
+
+```bash
+gcloud config set project winning-playbook-2026
+gcloud services enable aiplatform.googleapis.com
+gcloud auth application-default login
+gcloud auth application-default set-quota-project winning-playbook-2026
+```
+
+Then validate the local setup:
+
+```bash
+uv run python scripts/dev.py validate-demo
+```
+
+## Run The Demo
+
+Reset the default NDA demo vault and rebuild retrieval:
+
+```bash
+uv run python scripts/dev.py reset-demo
+```
+
+Start backend and frontend:
 
 ```bash
 bash scripts/dev.sh
 ```
 
-This starts FastAPI on `http://127.0.0.1:8000` and Vite on
-`http://localhost:5173`.
+Open:
 
-Install dependencies and start FastAPI with `uv`:
-
-```bash
-uv sync
-uv run uvicorn app.main:app --app-dir backend --reload --host 0.0.0.0 --port 8000
+```text
+http://localhost:5173
 ```
 
-Equivalent root-level helper:
-
-```bash
-uv run python scripts/dev.py backend
-```
-
-Health check:
-
-```bash
-curl http://localhost:8000/health
-```
-
-Expected response:
-
-```json
-{"status":"ok"}
-```
-
-Configuration is documented in `.env.example`. The backend creates the configured `vault`, `data`, and `chroma` directories on startup if they are missing.
-
-## Seed The Demo Vault
-
-Extract rules from a playbook source and write them to the Markdown/JSON vault:
-
-```bash
-uv run python scripts/seed_demo_data.py
-```
-
-The extractor accepts `.docx`, `.pdf`, `.xlsx`, and `.csv` sources. By default it runs in `hybrid` mode: it uses Gemini through Vertex AI and ADC when `GOOGLE_CLOUD_PROJECT` is configured, and falls back to local heuristics when Gemini is unavailable so the demo remains runnable. `GEMINI_API_KEY` is still supported as a secondary fallback.
-
-Recommended Vertex AI defaults:
-
-```env
-GOOGLE_CLOUD_PROJECT=winning-playbook-2026
-GOOGLE_CLOUD_LOCATION=europe-west4
-GEMINI_MODEL=gemini-2.5-flash
-```
-
-## Demo Reset
-
-Run the preflight check and reset the demo before presenting:
-
-```bash
-uv run python scripts/dev.py validate-demo
-uv run python scripts/dev.py reset-demo
-```
-
-`reset-demo` restores the NDA vault from `data/examples/Sample NDA Playbook.docx`, clears review-state drafts for that playbook, and rebuilds the Chroma index. For an offline extraction smoke test:
-
-```bash
-uv run python scripts/reset_demo.py --mode heuristic --skip-index
-```
-
-The detailed demo checklist lives in `docs/DEMO_RUNBOOK.md`.
-
-When the API is running, use the smoke test for the core demo endpoints:
+With the backend running, smoke-test the API:
 
 ```bash
 uv run python scripts/dev.py smoke-demo
 ```
 
-## Local Frontend Startup
+## Basic Usage
 
-The frontend lives in `frontend/` and uses npm. Keep `frontend/package.json` and
-`frontend/package-lock.json` as the source of truth for Node dependencies.
+### Ask The Playbook
+
+1. Start the app.
+2. Select the `NDA Playbook`.
+3. Ask one of:
+   - `Can we accept unlimited liability?`
+   - `Can we accept a unilateral NDA?`
+   - `What is our red line on contract penalties?`
+4. Inspect the highlighted cited branch, answer sources, confidence, and Git metadata.
+5. Click a source card or graph node to open the rule panel.
+
+### Propose And Approve An Update
+
+1. Open a rule by clicking a source or graph node.
+2. Switch role to `Lawyer` or `Admin`.
+3. Add proposed text and a reason.
+4. Create the proposal.
+5. Approve or reject it in the rule panel.
+
+Approval writes the Markdown/JSON rule, creates a Git commit when Git is configured, and reindexes retrieval.
+
+### Upload A New Playbook
+
+1. Click `Upload`.
+2. Enter a playbook id and name.
+3. Select DOCX, PDF, XLSX, or CSV files.
+4. Create a draft.
+5. Expand the draft and review extracted topics.
+6. Publish when it should replace that playbook's official vault.
+
+Publishing replaces the official rules for that playbook and rebuilds retrieval.
+
+## Common Commands
+
+| Command | Purpose |
+|---|---|
+| `bash scripts/dev.sh` | Start backend and frontend together. |
+| `uv run python scripts/dev.py validate-demo` | Check local files, paths, frontend metadata, and AI credentials. |
+| `uv run python scripts/dev.py reset-demo` | Reset default NDA vault and rebuild Chroma. |
+| `uv run python scripts/reset_demo.py --mode heuristic --skip-index` | Offline extraction smoke test without embeddings. |
+| `uv run python scripts/dev.py smoke-demo` | Check health, playbooks, rules, and ask endpoints. |
+| `uv run python scripts/smoke_demo.py --write-review` | Also create and reject a temporary proposed update. |
+| `uv run python scripts/dev.py test` | Run backend service tests. |
+| `uv run python scripts/dev.py frontend-lint` | Run frontend lint. |
+| `uv run python scripts/dev.py frontend-build` | Build the frontend. |
+
+## Important Paths
+
+- `backend/` - FastAPI app
+- `frontend/` - React/TanStack app
+- `scripts/` - dev, reset, seed, smoke, and validation helpers
+- `tests/` - backend service tests
+- `data/examples/` - sample challenge/playbook/NDA files
+- `vault/` - Markdown/JSON source of truth
+- `chroma/` - generated vector index
+
+`chroma/` is disposable. Keep `chroma/.gitkeep`, but the other files can be deleted and rebuilt with:
 
 ```bash
-uv run python scripts/dev.py frontend-install
-uv run python scripts/dev.py frontend
+uv run python scripts/dev.py reset-demo
 ```
 
-Set the API base URL for the Vite app when needed:
+## Troubleshooting
 
-```env
-VITE_API_BASE_URL=http://localhost:8000
-```
+- **Frontend says API is down:** run `bash scripts/dev.sh`, then check `http://localhost:8000/health`.
+- **ADC/Gemini issues:** run `uv run python scripts/dev.py validate-demo`, then rerun the `gcloud auth application-default ...` commands above.
+- **Retrieval seems stale:** delete generated files in `chroma/` except `.gitkeep`, then run `uv run python scripts/dev.py reset-demo`.
+- **Frontend points to wrong backend:** set `VITE_API_BASE_URL=http://localhost:8000`.
+- **Resetting a non-default playbook:** pass `--yes` only when you intend to replace that playbook's official rules.
 
-Build check:
+## More Docs
 
-```bash
-uv run python scripts/dev.py frontend-build
-```
+- `docs/DEMO_RUNBOOK.md` - concise live-demo script.
+- `docs/IMPLEMENTATION_PLAN.md` - current implementation status and next work.
+- `docs/PROJECT_SPEC.md` - product scope and architecture summary.

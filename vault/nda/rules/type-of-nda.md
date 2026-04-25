@@ -11,7 +11,7 @@ Bilateral (mutual) NDA — both parties' information is equally protected
 Never accept a unilateral NDA where our organization is the receiving party only, unless no confidential information will flow from our side under any circumstances
 
 ## Decision Logic
-An NDA can be either unilateral (protecting only one party's information) or bilateral/mutual (protecting both parties' information). The type of NDA determines whether our organization's information is protected when shared during discussions. Counterparties sometimes present a unilateral NDA that protects only their information. This means any information you share during discussions — even incidentally — has no contractual protection. Unilateral NDAs also tend to contain more aggressive provisions (penalties, IP claims) because they are drafted entirely from the disclosing party's perspective.
+_Not specified._
 
 ## Escalation Logic
 If the counterparty refuses to make the NDA bilateral and our organization will be sharing information, escalate to senior legal.

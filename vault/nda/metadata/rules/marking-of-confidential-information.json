@@ -8,7 +8,7 @@
     "All information is deemed confidential, but with a practical mechanism for the disclosing party to designate specific items as non-confidential"
   ],
   "red_line": "Reject any definition that treats all information as confidential with no marking mechanism and no reasonable-person standard",
-  "decision_logic": "The way confidential information is identified determines what is actually protected — and what obligations the receiving party bears. If all information exchanged is automatically deemed confidential, the burden on the recipient becomes unmanageable. Some NDAs define \"Confidential Information\" as any and all information exchanged between the parties, without any requirement to mark or identify it. This creates an unreasonable compliance burden because every piece of communication — even trivial exchanges — must be treated as confidential.",
+  "decision_logic": null,
   "escalation_logic": "If the counterparty insists that all information is confidential with no exceptions or marking process, escalate.",
   "rationale": "The way confidential information is identified determines what is actually protected — and what obligations the receiving party bears. If all information exchanged is automatically deemed confidential, the burden on the recipient becomes unmanageable.",
   "negotiation_tips": [

@@ -11,7 +11,7 @@ Information provided "AS IS" — no warranty of accuracy, completeness, or fitne
 Reject any clause requiring a full warranty of accuracy with associated liability — this is inappropriate for an NDA
 
 ## Decision Logic
-An NDA typically facilitates a preliminary assessment of a potential business relationship. It is not the appropriate vehicle for warranties about the accuracy of shared information. However, if one party provides materially incorrect information, the other party could make poor business decisions based on it. Some NDAs include warranties that all disclosed information is accurate, complete, and current. This creates significant liability exposure for the disclosing party, particularly at an early-stage evaluation where information may be preliminary or incomplete.
+_Not specified._
 
 ## Escalation Logic
 If the counterparty insists on accuracy warranties backed by indemnification, escalate.
@@ -27,7 +27,7 @@ _Not specified._
 
 ## Metadata
 - Playbook: nda
-- Rule ID: liability-for-correctness-of-confidential-information
+- Rule ID: liability-correctness-confidential-information
 - Status: approved
 - Source Documents:
   - data/examples/Sample NDA Playbook.docx (Clause 6)

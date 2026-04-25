@@ -11,13 +11,13 @@ No contractual penalty clause. Remedies should be limited to actual damages prov
 Reject any uncapped penalty, any penalty that applies regardless of fault, or any penalty that is cumulative with unlimited damages
 
 ## Decision Logic
-Some NDAs impose a fixed monetary penalty for any breach of confidentiality, regardless of whether actual damages occurred. Such penalties can be disproportionate and create significant financial risk, especially when the definition of "breach" is broad. Contractual penalty clauses are more common in unilateral NDAs. They may specify a fixed sum per breach (or per incident), sometimes in very large amounts, and may be cumulative with other remedies (damages, injunctive relief).
+_Not specified._
 
 ## Escalation Logic
 Any contractual penalty clause should be reviewed by senior legal before acceptance.
 
 ## Rationale
-Some NDAs impose a fixed monetary penalty for any breach of confidentiality, regardless of whether actual damages occurred. Such penalties can be disproportionate and create significant financial risk, especially when the definition of "breach" is broad.
+Some NDAs impose a fixed monetary penalty for any breach of confidentiality, regardless of whether actual damages occurred. Such penalties can be disproportionate and create significant financial risk, especially when the definition of 'breach' is broad.
 
 ## Negotiation Tips
 - Contractual penalty clauses are more common in unilateral NDAs. They may specify a fixed sum per breach (or per incident), sometimes in very large amounts, and may be cumulative with other remedies (damages, injunctive relief).
@@ -27,7 +27,7 @@ _Not specified._
 
 ## Metadata
 - Playbook: nda
-- Rule ID: contractual-penalty-for-breach-of-confidentiality
+- Rule ID: contractual-penalty-breach-confidentiality
 - Status: approved
 - Source Documents:
   - data/examples/Sample NDA Playbook.docx (Clause 7)

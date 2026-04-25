@@ -8,7 +8,7 @@
     "Accept a unilateral NDA only if our organization is the sole disclosing party (i.e., you are the beneficiary)"
   ],
   "red_line": "Never accept a unilateral NDA where our organization is the receiving party only, unless no confidential information will flow from our side under any circumstances",
-  "decision_logic": "An NDA can be either unilateral (protecting only one party's information) or bilateral/mutual (protecting both parties' information). The type of NDA determines whether our organization's information is protected when shared during discussions. Counterparties sometimes present a unilateral NDA that protects only their information. This means any information you share during discussions — even incidentally — has no contractual protection. Unilateral NDAs also tend to contain more aggressive provisions (penalties, IP claims) because they are drafted entirely from the disclosing party's perspective.",
+  "decision_logic": null,
   "escalation_logic": "If the counterparty refuses to make the NDA bilateral and our organization will be sharing information, escalate to senior legal.",
   "rationale": "An NDA can be either unilateral (protecting only one party's information) or bilateral/mutual (protecting both parties' information). The type of NDA determines whether our organization's information is protected when shared during discussions.",
   "negotiation_tips": [

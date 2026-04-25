@@ -1,6 +1,6 @@
 {
   "playbook_id": "nda",
-  "rule_id": "choice-of-law-governing-law",
+  "rule_id": "choice-of-law",
   "topic": "Choice of Law (Governing Law)",
   "standard_position": "Governing law of our own jurisdiction",
   "fallback_positions": [
@@ -8,7 +8,7 @@
     "Accept the counterparty's governing law if it is a well-established commercial jurisdiction and the NDA is otherwise balanced"
   ],
   "red_line": "Reject governing law of jurisdictions with unpredictable legal systems, weak IP protection, or where enforcement of confidentiality obligations is uncertain",
-  "decision_logic": "The governing law determines how the NDA will be interpreted and enforced. It also often sets a precedent for the governing law of any subsequent commercial agreement. Each party naturally prefers its own jurisdiction's laws. Counterparties will typically impose their own law. In cross-border NDAs, this can create disadvantages if the chosen law is unfamiliar, unpredictable, or materially different from our own jurisdiction's approach to confidentiality and IP protection.",
+  "decision_logic": null,
   "escalation_logic": "If the proposed governing law is from a jurisdiction outside of our organization's country of incorporation or primary place of business, escalate for assessment.",
   "rationale": "The governing law determines how the NDA will be interpreted and enforced. It also often sets a precedent for the governing law of any subsequent commercial agreement. Each party naturally prefers its own jurisdiction's laws.",
   "negotiation_tips": [
