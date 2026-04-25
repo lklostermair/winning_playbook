@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     app_name: str = "Living Playbook API"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+    frontend_origins: str = Field(
+        default="http://localhost:5173,http://127.0.0.1:5173",
+        alias="FRONTEND_ORIGINS",
+    )
 
     vault_dir: Path = Field(default=Path("./vault"), alias="VAULT_DIR")
     data_dir: Path = Field(default=Path("./data"), alias="DATA_DIR")
@@ -38,6 +42,10 @@ class Settings(BaseSettings):
     def ensure_runtime_directories(self) -> None:
         for directory in (self.vault_dir, self.data_dir, self.chroma_dir):
             directory.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def allowed_frontend_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.frontend_origins.split(",") if origin.strip()]
 
 
 @lru_cache

@@ -48,6 +48,8 @@ class ProposedUpdateService:
             request.proposed_change.old_text = current_text
         elif normalize_text(request.proposed_change.old_text) != normalize_text(current_text):
             raise ProposedUpdateError("Proposed change old_text does not match the current rule section.")
+        if normalize_text(request.proposed_change.new_text) == normalize_text(current_text):
+            raise ProposedUpdateError("Proposed change does not differ from the current rule section.")
 
         record = ProposedUpdateRecord(
             update_id=f"update_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{uuid4().hex[:8]}",

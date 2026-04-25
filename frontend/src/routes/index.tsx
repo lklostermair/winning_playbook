@@ -1,17 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight,
   Bot,
   CheckCircle2,
   ChevronDown,
-  Copy,
   FileText,
   Folder,
+  GitCommit,
   MessageCircle,
   Moon,
-  Paperclip,
   RefreshCw,
   Search,
   Send,
@@ -20,7 +17,26 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
+import {
+  askPlaybook,
+  approveUpdate,
+  createUpdate,
+  getHealth,
+  getPlaybooks,
+  getRule,
+  getRules,
+  getUpdates,
+  reindexPlaybook,
+  rejectUpdate,
+  type AskResponse,
+  type PlaybookSummary,
+  type ProposedUpdate,
+  type RuleDetail,
+  type RuleSummary,
+  type SourceReference,
+} from "@/lib/api";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -40,344 +56,197 @@ import {
 
 type Role = "Business User" | "Lawyer" | "Admin";
 
-type Clause = {
-  number: number;
-  title: string;
-  why: string;
-  watch: string;
-  preferred: string;
-  fallback1: string;
-  fallback2: string;
-  redLine: string;
-  escalation: string;
-};
-
 type ChatMessage = {
   id: number;
   role: "user" | "ai";
   text: string;
-  clauses?: number[];
+  answer?: AskResponse;
 };
-
-type GraphNode = {
-  id: string;
-  label: string;
-  type: "root" | "folder" | "file";
-  x: number;
-  y: number;
-};
-
-type GraphLink = {
-  from: string;
-  to: string;
-};
-
-const clauses: Clause[] = [
-  {
-    number: 1,
-    title: "Type of NDA (Unilateral vs Bilateral)",
-    why: "The NDA structure determines whether confidentiality duties apply to one party or both parties.",
-    watch: "Avoid accepting a unilateral NDA when SIEMENSCH will also share sensitive information.",
-    preferred: "Use a bilateral NDA whenever both sides exchange confidential information.",
-    fallback1: "Accept unilateral protection only when SIEMENSCH receives information but discloses none.",
-    fallback2: "Add reciprocal obligations for any SIEMENSCH disclosures made during discussions.",
-    redLine: "Do not disclose SIEMENSCH confidential information under a one-way NDA protecting only the counterparty.",
-    escalation: "Escalate if the counterparty refuses bilateral protection while requesting SIEMENSCH information.",
-  },
-  {
-    number: 2,
-    title: "Marking of Confidential Information",
-    why: "Marking requirements affect whether oral, visual, or accidentally unmarked information remains protected.",
-    watch: "Strict marking-only definitions can exclude important business discussions and technical demonstrations.",
-    preferred: "Protect information that is marked, identified orally, or reasonably understood to be confidential.",
-    fallback1: "Allow oral disclosures if summarized in writing within a reasonable period.",
-    fallback2: "Accept marking requirements only for written materials, not meetings or demonstrations.",
-    redLine: "Do not accept loss of protection solely because information was not stamped confidential.",
-    escalation: "Escalate if the NDA excludes orally disclosed or obviously confidential information.",
-  },
-  {
-    number: 3,
-    title: "Exceptions to Confidential Information",
-    why: "Exceptions define what information can be used freely and prevent overbroad confidentiality claims.",
-    watch: "Ensure common exceptions cover prior knowledge, public information, independent development, and lawful third-party receipt.",
-    preferred: "Include standard exceptions with clear evidence requirements for the receiving party.",
-    fallback1: "Accept narrower wording if public domain and prior possession remain covered.",
-    fallback2: "Use written records to prove independent development or prior knowledge.",
-    redLine: "Do not accept an NDA with no practical exceptions to confidentiality.",
-    escalation: "Escalate if exceptions are removed or the burden of proof is commercially unreasonable.",
-  },
-  {
-    number: 4,
-    title: "Permitted Recipients",
-    why: "The business may need advisors, affiliates, employees, and contractors to review confidential information.",
-    watch: "Overly narrow recipient lists can block normal diligence, legal review, or technical evaluation.",
-    preferred: "Allow disclosure to employees, affiliates, advisors, and contractors with a need to know and confidentiality duties.",
-    fallback1: "Accept named categories with prior written notice where sensitive disclosures are involved.",
-    fallback2: "Limit disclosure to representatives directly involved in the project.",
-    redLine: "Do not accept terms that prevent SIEMENSCH legal counsel or core advisors from reviewing materials.",
-    escalation: "Escalate if affiliates or external counsel are excluded from permitted recipients.",
-  },
-  {
-    number: 5,
-    title: "Return or Destruction of Routine Backup Copies",
-    why: "Routine IT backups may retain copies even after project materials are deleted or returned.",
-    watch: "Absolute deletion obligations may be impossible across automated backup systems.",
-    preferred: "Permit routine backup copies to remain subject to confidentiality until overwritten or deleted in ordinary course.",
-    fallback1: "Certify deletion of active files while excluding inaccessible archival backups.",
-    fallback2: "Allow retained copies required by law, compliance, or internal recordkeeping policies.",
-    redLine: "Do not promise immediate deletion of every backup or disaster recovery copy.",
-    escalation: "Escalate if deletion certification covers systems SIEMENSCH cannot practically purge.",
-  },
-  {
-    number: 6,
-    title: "Liability for Correctness of Confidential Information",
-    why: "Disclosing parties usually do not guarantee that shared preliminary information is accurate or complete.",
-    watch: "Accuracy warranties can create unintended liability for early-stage estimates, forecasts, or draft data.",
-    preferred: "State that confidential information is provided as-is without warranty as to accuracy or completeness.",
-    fallback1: "Limit reliance to information expressly confirmed in a later definitive agreement.",
-    fallback2: "Accept responsibility only for intentional misrepresentation or fraud.",
-    redLine: "Do not provide broad warranties for correctness of confidential or preliminary information.",
-    escalation: "Escalate if the counterparty requires reliance warranties inside the NDA.",
-  },
-  {
-    number: 7,
-    title: "Contractual Penalty for Breach of Confidentiality",
-    why: "Pre-agreed penalties can create disproportionate exposure unrelated to actual harm.",
-    watch: "Penalty clauses may be uncapped, automatic, or cumulative with damages.",
-    preferred: "Reject contractual penalties and rely on proven damages plus equitable remedies where appropriate.",
-    fallback1: "If unavoidable, require a reasonable cap and proportionality to actual harm.",
-    fallback2: "Clarify that any amount is not automatic and remains subject to legal review.",
-    redLine: "Do not accept uncapped automatic penalties for confidentiality breaches.",
-    escalation: "Escalate any contractual penalty demand before signature.",
-  },
-  {
-    number: 8,
-    title: "Other Liabilities (Indemnification, Limitation of Liability)",
-    why: "Indemnities and liability caps shape the financial consequences of breach.",
-    watch: "Broad indemnities can override normal liability limits and cover indirect losses.",
-    preferred: "Keep liability limited to direct damages with balanced exclusions for intentional misconduct.",
-    fallback1: "Accept a mutual, capped indemnity limited to third-party claims caused by breach.",
-    fallback2: "Exclude consequential, punitive, and lost-profit damages wherever possible.",
-    redLine: "Do not accept unlimited liability for ordinary confidentiality breaches.",
-    escalation: "Escalate if liability is uncapped, one-sided, or includes broad indemnification.",
-  },
-  {
-    number: 9,
-    title: "Intellectual Property Rights (Including Know-How)",
-    why: "NDA discussions should not transfer ownership of SIEMENSCH IP, know-how, or improvements.",
-    watch: "Beware clauses assigning feedback, ideas, residual knowledge, or improvements to the counterparty.",
-    preferred: "Each party retains its pre-existing IP and no license is granted except for evaluation under the NDA.",
-    fallback1: "Allow use of confidential information solely for the defined purpose.",
-    fallback2: "Clarify that general skills and unaided memory are not transferred as owned IP.",
-    redLine: "Do not assign SIEMENSCH IP, know-how, or improvements through an NDA.",
-    escalation: "Escalate any ownership, license, feedback, or residuals language that affects SIEMENSCH technology.",
-  },
-  {
-    number: 10,
-    title: "Non-Solicitation of Employees",
-    why: "Non-solicitation restrictions can limit hiring flexibility and may raise enforceability concerns.",
-    watch: "Broad restrictions may cover general recruiting, unrelated employees, or long durations.",
-    preferred: "Avoid non-solicitation clauses in NDAs unless directly tied to sensitive discussions.",
-    fallback1: "Limit the restriction to employees directly involved in the project.",
-    fallback2: "Carve out general advertisements, recruiters, and unsolicited applications.",
-    redLine: "Do not accept broad company-wide hiring restrictions or excessive durations.",
-    escalation: "Escalate if the clause lasts beyond 12 months or covers employees with no project involvement.",
-  },
-  {
-    number: 11,
-    title: "Contract Term and Confidentiality Period",
-    why: "The term controls how long the NDA applies and how long confidentiality obligations survive.",
-    watch: "Indefinite obligations may be appropriate for trade secrets but not ordinary business information.",
-    preferred: "Use a fixed NDA term with confidentiality obligations surviving for a reasonable period, typically three to five years.",
-    fallback1: "Accept longer protection for trade secrets while ordinary confidential information expires.",
-    fallback2: "Use two years for low-risk business discussions if commercially necessary.",
-    redLine: "Do not accept perpetual confidentiality for all information regardless of sensitivity.",
-    escalation: "Escalate if the counterparty demands indefinite protection for routine commercial information.",
-  },
-  {
-    number: 12,
-    title: "Choice of Law (Governing Law)",
-    why: "Governing law affects interpretation, remedies, and enforcement risk.",
-    watch: "Unfamiliar or unfavorable jurisdictions can increase legal uncertainty and costs.",
-    preferred: "Use a familiar, commercially reasonable governing law aligned with the transaction context.",
-    fallback1: "Accept neutral law if reviewed by legal and compatible with enforcement needs.",
-    fallback2: "Separate governing law from venue if a compromise is needed.",
-    redLine: "Do not accept sanctions-sensitive, unstable, or legally impractical governing law.",
-    escalation: "Escalate unfamiliar, high-risk, or non-standard governing law proposals.",
-  },
-  {
-    number: 13,
-    title: "Dispute Resolution and Language of the Contract",
-    why: "Forum, dispute process, and contract language determine how conflicts are handled.",
-    watch: "One-sided venues, mandatory local courts, or non-English controlling versions may create risk.",
-    preferred: "Use a neutral forum and English as the controlling contract language unless legal approves otherwise.",
-    fallback1: "Accept arbitration for cross-border matters if seat, language, and rules are balanced.",
-    fallback2: "Use local courts only where commercially justified and legally reviewed.",
-    redLine: "Do not accept a non-English controlling version without legal approval.",
-    escalation: "Escalate if dispute terms are one-sided, unfamiliar, or not in English.",
-  },
-  {
-    number: 14,
-    title: "Signatures and Authority to Sign",
-    why: "The NDA must be signed by people with authority to bind each party.",
-    watch: "Unauthorized signatures can create enforceability issues and delay business discussions.",
-    preferred: "Confirm authorized signatories and allow electronic signatures where valid.",
-    fallback1: "Use written confirmation of authority where formal evidence is not immediately available.",
-    fallback2: "Permit counterpart signatures and recognized e-signature tools.",
-    redLine: "Do not proceed on an NDA signed by someone without apparent authority.",
-    escalation: "Escalate if authority is uncertain or the counterparty rejects acceptable e-signature methods.",
-  },
-];
 
 const suggestedQuestions = [
-  "What is our red line on liability?",
+  "Can we accept unlimited liability?",
   "Can we accept a unilateral NDA?",
-  "What is the preferred confidentiality period?",
-];
-
-const recentChats = [
-  "What is our position on IP...",
-  "Confidentiality period que...",
-  "Can we share with advisors?...",
-];
-
-const vaultNodes: GraphNode[] = [
-  { id: "vault", label: "NDA Vault", type: "root", x: 380, y: 115 },
-  { id: "contracts", label: "Contracts", type: "folder", x: 210, y: 85 },
-  { id: "research", label: "Research", type: "folder", x: 550, y: 145 },
-  { id: "mutual", label: "Mutual NDA.md", type: "file", x: 70, y: 38 },
-  { id: "unilateral", label: "Unilateral.md", type: "file", x: 82, y: 118 },
-  { id: "liability", label: "Liability.md", type: "file", x: 205, y: 28 },
-  { id: "signatures", label: "Signatures.md", type: "file", x: 222, y: 168 },
-  { id: "terms", label: "Terms.md", type: "file", x: 655, y: 58 },
-  { id: "recipients", label: "Recipients.md", type: "file", x: 705, y: 128 },
-  { id: "ip", label: "IP Rights.md", type: "file", x: 620, y: 205 },
-  { id: "law", label: "Governing Law.md", type: "file", x: 500, y: 218 },
-];
-
-const vaultLinks: GraphLink[] = [
-  { from: "vault", to: "contracts" },
-  { from: "vault", to: "research" },
-  { from: "contracts", to: "mutual" },
-  { from: "contracts", to: "unilateral" },
-  { from: "contracts", to: "liability" },
-  { from: "contracts", to: "signatures" },
-  { from: "research", to: "terms" },
-  { from: "research", to: "recipients" },
-  { from: "research", to: "ip" },
-  { from: "research", to: "law" },
+  "What is our red line on contract penalties?",
 ];
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SIEMENSCH Legal AI" },
+      { title: "Living Playbook" },
       {
         name: "description",
-        content: "A minimal legal AI assistant for navigating the SIEMENSCH NDA Playbook.",
-      },
-      { property: "og:title", content: "SIEMENSCH Legal AI" },
-      {
-        property: "og:description",
-        content: "Ask questions, review NDA playbook clauses, and capture legal feedback.",
+        content: "Source-grounded legal playbook assistant with lawyer approval workflow.",
       },
     ],
   }),
-  component: SiemenschApp,
+  component: LivingPlaybookApp,
 });
 
-function SiemenschApp() {
+function LivingPlaybookApp() {
   const [role, setRole] = useState<Role>("Business User");
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [selectedClauseNumber, setSelectedClauseNumber] = useState<number | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [selectedGraphNode, setSelectedGraphNode] = useState("vault");
+  const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "down">("checking");
+  const [playbooks, setPlaybooks] = useState<PlaybookSummary[]>([]);
+  const [selectedPlaybookId, setSelectedPlaybookId] = useState("nda");
+  const [rules, setRules] = useState<RuleSummary[]>([]);
+  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
+  const [selectedRule, setSelectedRule] = useState<RuleDetail | null>(null);
+  const [updates, setUpdates] = useState<ProposedUpdate[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [isEditingClause, setIsEditingClause] = useState(false);
-  const [editedClause, setEditedClause] = useState("");
+  const [updateDraft, setUpdateDraft] = useState({
+    section: "Fallback Position",
+    newText: "",
+    reason: "",
+  });
 
-  const selectedClause = useMemo(
-    () => clauses.find((clause) => clause.number === selectedClauseNumber) ?? null,
-    [selectedClauseNumber],
+  const refreshAll = useCallback(
+    async (playbookId = selectedPlaybookId) => {
+      try {
+        setApiStatus("checking");
+        await getHealth();
+        setApiStatus("ok");
+        const [playbookList, ruleList, updateList] = await Promise.all([
+          getPlaybooks(),
+          getRules(playbookId),
+          getUpdates(playbookId),
+        ]);
+        setPlaybooks(playbookList);
+        setRules(ruleList);
+        setUpdates(updateList);
+        if (!selectedRuleId && ruleList[0]) {
+          setSelectedRuleId(ruleList[0].rule_id);
+        }
+      } catch (error) {
+        setApiStatus("down");
+        toast.error(error instanceof Error ? error.message : "Backend is not reachable.");
+      }
+    },
+    [selectedPlaybookId, selectedRuleId],
   );
 
-  const selectClause = (number: number) => {
-    const clause = clauses.find((item) => item.number === number);
-    setSelectedClauseNumber(number);
-    setIsEditingClause(false);
-    setEditedClause(clause ? `${clause.why}\n\n${clause.watch}` : "");
-  };
+  useEffect(() => {
+    void refreshAll(selectedPlaybookId);
+  }, [refreshAll, selectedPlaybookId]);
 
-  const createAnswer = (question: string): ChatMessage => {
-    const lowerQuestion = question.toLowerCase();
-    let referencedClauses = [3, 11];
-    let answer =
-      "The NDA Playbook position is to keep the clause balanced, practical, and tied to the defined purpose. Clause 3 · Exceptions to Confidential Information should preserve standard carve-outs, while Clause 11 · Contract Term and Confidentiality Period should avoid perpetual protection for routine commercial information.";
-
-    if (lowerQuestion.includes("liability") || lowerQuestion.includes("indemn")) {
-      referencedClauses = [8, 7];
-      answer =
-        "Our liability position is conservative. Clause 8 · Other Liabilities prefers direct damages with balanced limits, and Clause 7 · Contractual Penalty for Breach of Confidentiality rejects uncapped automatic penalties. The red line is unlimited liability for ordinary confidentiality breaches.";
-    } else if (lowerQuestion.includes("unilateral") || lowerQuestion.includes("bilateral")) {
-      referencedClauses = [1, 4];
-      answer =
-        "A unilateral NDA is acceptable only when SIEMENSCH receives information and does not disclose its own. Clause 1 · Type of NDA calls for bilateral protection when both sides exchange confidential information, and Clause 4 · Permitted Recipients should still allow core advisors and counsel to review materials.";
-    } else if (lowerQuestion.includes("period") || lowerQuestion.includes("term")) {
-      referencedClauses = [11, 5];
-      answer =
-        "The preferred confidentiality period is a reasonable fixed survival period, typically three to five years. Clause 11 · Contract Term and Confidentiality Period allows longer protection for trade secrets, while Clause 5 · Return or Destruction of Routine Backup Copies prevents impossible deletion obligations.";
-    } else if (lowerQuestion.includes("ip") || lowerQuestion.includes("know-how")) {
-      referencedClauses = [9, 6];
-      answer =
-        "SIEMENSCH should retain all pre-existing IP, know-how, and improvements. Clause 9 · Intellectual Property Rights states that no license or assignment is granted through the NDA, and Clause 6 · Liability for Correctness avoids warranty exposure for preliminary information.";
+  useEffect(() => {
+    if (!selectedRuleId) {
+      setSelectedRule(null);
+      return;
     }
+    getRule(selectedPlaybookId, selectedRuleId)
+      .then(setSelectedRule)
+      .catch((error) => toast.error(error.message));
+  }, [selectedPlaybookId, selectedRuleId]);
 
-    return {
-      id: Date.now() + 1,
-      role: "ai",
-      text: answer,
-      clauses: referencedClauses,
-    };
-  };
+  const selectedPlaybook = playbooks.find(
+    (playbook) => playbook.playbook_id === selectedPlaybookId,
+  );
+  const latestGit = useMemo(() => latestGitMetadata(rules), [rules]);
+  const pendingUpdates = updates.filter((update) => update.status === "pending");
 
-  const submitQuestion = (question = input) => {
-    const trimmedQuestion = question.trim();
-    if (!trimmedQuestion) return;
+  async function submitQuestion(question = input) {
+    const trimmed = question.trim();
+    if (!trimmed || loading) return;
 
-    const userMessage: ChatMessage = {
-      id: Date.now(),
-      role: "user",
-      text: trimmedQuestion,
-    };
-
-    setMessages((current) => [...current, userMessage, createAnswer(trimmedQuestion)]);
+    const userMessage: ChatMessage = { id: Date.now(), role: "user", text: trimmed };
+    setMessages((current) => [...current, userMessage]);
     setInput("");
-  };
+    setLoading(true);
+    try {
+      const answer = await askPlaybook(selectedPlaybookId, trimmed);
+      setMessages((current) => [
+        ...current,
+        { id: Date.now() + 1, role: "ai", text: answer.answer, answer },
+      ]);
+      const firstSource = answer.sources[0];
+      const matchingRule = firstSource ? ruleIdFromPath(firstSource.file) : null;
+      if (matchingRule) setSelectedRuleId(matchingRule);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ask failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const submitFeedback = () => {
-    setFeedbackOpen(false);
-    toast.success("Feedback submitted. Thank you!");
-  };
+  async function submitProposedUpdate() {
+    if (!selectedRule || !updateDraft.newText.trim() || !updateDraft.reason.trim()) {
+      toast.error("Choose a rule and provide proposed text plus a reason.");
+      return;
+    }
+    try {
+      await createUpdate({
+        playbook_id: selectedPlaybookId,
+        target_rule_id: selectedRule.rule.rule_id,
+        reason: updateDraft.reason,
+        proposed_change: {
+          section: updateDraft.section,
+          new_text: updateDraft.newText,
+        },
+        suggested_by: role,
+      });
+      setUpdateDraft({ section: "Fallback Position", newText: "", reason: "" });
+      await refreshAll();
+      toast.success("Proposed update created.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not create update.");
+    }
+  }
+
+  async function approve(update: ProposedUpdate) {
+    try {
+      const result = await approveUpdate(update.update_id, role);
+      await refreshAll(update.playbook_id);
+      if (selectedRuleId) {
+        setSelectedRule(await getRule(selectedPlaybookId, selectedRuleId));
+      }
+      toast.success(`Approved and committed ${shortHash(result.commit_hash)}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Approval failed.");
+    }
+  }
+
+  async function reject(update: ProposedUpdate) {
+    try {
+      await rejectUpdate(update.update_id, role, "Rejected from frontend review.");
+      await refreshAll(update.playbook_id);
+      toast.success("Update rejected.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Rejection failed.");
+    }
+  }
+
+  async function reindex() {
+    try {
+      const result = await reindexPlaybook(selectedPlaybookId);
+      toast.success(`Reindexed ${result.chunks_indexed} chunks.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Reindex failed.");
+    }
+  }
 
   return (
     <main className={`${isDarkMode ? "dark" : ""} min-h-screen bg-background text-foreground`}>
       <div className="flex h-screen overflow-hidden">
-        <aside className="hidden w-[280px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar px-5 py-5 text-[13px] font-normal text-sidebar-foreground md:flex">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div className="text-[22px] font-medium tracking-tight text-sidebar-primary">SIEMENSCH</div>
+        <aside className="hidden w-[284px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar px-5 py-5 text-[13px] text-sidebar-foreground md:flex">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary text-primary-foreground">
+              <ShieldCheck className="h-5 w-5" />
             </div>
-            <ChevronDown className="h-5 w-5 text-sidebar-foreground" />
+            <div>
+              <div className="text-[20px] font-medium tracking-tight text-sidebar-primary">
+                Living Playbook
+              </div>
+              <div className="text-xs text-sidebar-label">NDA workspace</div>
+            </div>
           </div>
 
-          <div className="mt-8">
+          <div className="mt-7 space-y-3">
             <Select value={role} onValueChange={(value) => setRole(value as Role)}>
-              <SelectTrigger className="h-11 rounded-2xl border-sidebar-border bg-sidebar-panel px-4 text-[13px] font-normal text-sidebar-primary shadow-none">
+              <SelectTrigger className="h-10 rounded-lg border-sidebar-border bg-sidebar-panel text-sidebar-primary">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -386,92 +255,129 @@ function SiemenschApp() {
                 <SelectItem value="Admin">Admin</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select value={selectedPlaybookId} onValueChange={setSelectedPlaybookId}>
+              <SelectTrigger className="h-10 rounded-lg border-sidebar-border bg-sidebar-panel text-sidebar-primary">
+                <SelectValue placeholder="Select playbook" />
+              </SelectTrigger>
+              <SelectContent>
+                {playbooks.map((playbook) => (
+                  <SelectItem key={playbook.playbook_id} value={playbook.playbook_id}>
+                    {playbook.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="mt-7 border-t border-sidebar-border pt-5">
-            <div className="mb-3 text-[11px] font-normal uppercase tracking-[0.08em] text-sidebar-label">Contracts</div>
-            <div className="flex items-center justify-between rounded-2xl border border-sidebar-border bg-sidebar-panel px-3.5 py-3 text-[13px] font-normal text-sidebar-primary shadow-none">
-              <span className="flex min-w-0 items-center gap-3">
-                <FileText className="h-5 w-5 shrink-0 text-sidebar-foreground" />
-                <span className="truncate">NDA Playbook</span>
-              </span>
-              <button aria-label="Deselect NDA Playbook" className="rounded-xl bg-suggested-chip p-2 text-sidebar-foreground hover:text-sidebar-primary">
-                <X className="h-4 w-4" />
-              </button>
+            <div className="mb-3 text-[11px] uppercase tracking-[0.08em] text-sidebar-label">
+              Status
             </div>
-            {role === "Admin" && (
-              <button className="mt-3 text-[13px] font-normal text-sidebar-primary hover:underline">
-                + Upload New Playbook
-              </button>
-            )}
-            <button
-              onClick={() => setUploadOpen(true)}
-              className="mt-4 flex w-full items-center justify-between rounded-xl bg-primary px-4 py-3.5 text-[13px] font-medium text-primary-foreground transition hover:bg-primary/90"
-            >
-              <span>+ New Contract</span>
-              <ChevronDown className="h-5 w-5" />
-            </button>
+            <div className="space-y-2 rounded-lg border border-sidebar-border bg-sidebar-panel p-3">
+              <StatusRow
+                label="API"
+                value={apiStatus === "ok" ? "Connected" : apiStatus}
+                good={apiStatus === "ok"}
+              />
+              <StatusRow label="Rules" value={`${rules.length}`} good={rules.length > 0} />
+              <StatusRow
+                label="Pending"
+                value={`${pendingUpdates.length}`}
+                good={pendingUpdates.length === 0}
+              />
+            </div>
           </div>
 
-          <div className="mt-7 space-y-3">
-            <div className="text-[11px] font-normal uppercase tracking-[0.08em] text-sidebar-label">Documents</div>
-            <button className="flex items-center gap-3 text-[13px] font-normal text-sidebar-foreground hover:text-sidebar-primary">
-              <FileText className="h-5 w-5" />
-              Documents
-            </button>
-            <label className="flex h-12 items-center gap-3 rounded-2xl border border-sidebar-border bg-sidebar-panel px-4 text-[13px] font-normal text-sidebar-foreground shadow-none">
-              <Search className="h-5 w-5" />
-              <input
-                className="w-full bg-transparent outline-none placeholder:text-sidebar-foreground"
-                placeholder="Search conversations..."
-              />
-            </label>
-            <div className="space-y-1.5">
-              {recentChats.map((chat, index) => (
+          <div className="mt-7 min-h-0 flex-1">
+            <div className="mb-3 flex items-center justify-between text-[11px] uppercase tracking-[0.08em] text-sidebar-label">
+              <span>Rules</span>
+              <Search className="h-4 w-4" />
+            </div>
+            <div className="space-y-1.5 overflow-y-auto pr-1">
+              {rules.map((rule) => (
                 <button
-                  key={chat}
-                  className={`flex h-12 w-full items-center gap-3 rounded-xl px-3.5 text-left text-[13px] font-normal ${
-                    index === 0 ? "bg-active-item text-sidebar-primary" : "text-sidebar-foreground hover:bg-sidebar-panel"
+                  key={rule.rule_id}
+                  onClick={() => setSelectedRuleId(rule.rule_id)}
+                  className={`flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left ${
+                    selectedRuleId === rule.rule_id
+                      ? "bg-active-item text-sidebar-primary"
+                      : "text-sidebar-foreground hover:bg-sidebar-panel"
                   }`}
                 >
-                  <MessageCircle className="h-5 w-5 shrink-0" />
-                  <span className="truncate">{chat}</span>
+                  <FileText className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span className="min-w-0">
+                    <span className="block truncate">{rule.topic}</span>
+                    <span className="block text-xs text-sidebar-label">{rule.status}</span>
+                  </span>
                 </button>
               ))}
             </div>
           </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button
+              onClick={() => void refreshAll()}
+              className="rounded-lg border border-input px-3 py-2 text-sidebar-primary hover:bg-sidebar-panel"
+            >
+              Refresh
+            </button>
+            <button
+              onClick={() => void reindex()}
+              className="rounded-lg bg-primary px-3 py-2 text-primary-foreground hover:bg-primary/90"
+            >
+              Reindex
+            </button>
+          </div>
         </aside>
 
         <section className="relative flex min-w-0 flex-1 flex-col bg-background">
-          <header className="relative flex h-20 shrink-0 items-center justify-center px-10">
-            <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center text-center">
-              <div className="text-[20px] font-medium tracking-tight text-foreground">NDA Playbook</div>
+          <header className="flex h-16 shrink-0 items-center justify-between border-b px-6">
+            <div>
+              <div className="text-lg font-medium">{selectedPlaybook?.name ?? "NDA Playbook"}</div>
+              <div className="text-xs text-muted-foreground">
+                Latest change:{" "}
+                {latestGit
+                  ? `${shortHash(latestGit.last_commit_hash)} · ${latestGit.last_commit_message}`
+                  : "No committed rule history"}
+              </div>
             </div>
-            <button
-              onClick={() => setIsDarkMode((current) => !current)}
-              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-              className="absolute right-8 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-input bg-background text-muted-foreground shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition hover:bg-muted hover:text-foreground"
-            >
-              {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setUploadOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-input px-3 py-2 text-sm hover:bg-muted"
+              >
+                <UploadCloud className="h-4 w-4" />
+                Upload
+              </button>
+              <button
+                onClick={() => setIsDarkMode((current) => !current)}
+                aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+                className="grid h-9 w-9 place-items-center rounded-full border border-input hover:bg-muted"
+              >
+                {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+            </div>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-10 pb-56 pt-2 text-[14px] leading-[1.6] text-body-text">
-            <VaultGraph selectedNode={selectedGraphNode} onSelectNode={setSelectedGraphNode} />
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-48 pt-5 text-[14px] leading-[1.6] text-body-text">
+            <VaultGraph
+              rules={rules}
+              selectedRuleId={selectedRuleId}
+              onSelectRule={setSelectedRuleId}
+            />
+
             {messages.length === 0 ? (
-              <div className="mx-auto flex max-w-4xl flex-col items-center pt-12 text-center">
-                <h1 className="max-w-3xl text-[22px] font-medium leading-[1.45] tracking-normal text-foreground">
-                  Good morning! How can I help you with the NDA Playbook today?
+              <div className="mx-auto mt-8 max-w-4xl text-center">
+                <h1 className="text-[22px] font-medium leading-[1.45] text-foreground">
+                  Ask the playbook, then verify the answer from its sources.
                 </h1>
-                <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <div className="mt-7 flex flex-wrap justify-center gap-3">
                   {suggestedQuestions.map((question) => (
                     <button
                       key={question}
-                      onClick={() => {
-                        setInput(question);
-                        submitQuestion(question);
-                      }}
-                      className="rounded-[20px] border border-input bg-suggested-chip px-5 py-3 text-[14px] font-normal text-body-text shadow-none transition hover:border-sidebar-label hover:text-foreground"
+                      onClick={() => void submitQuestion(question)}
+                      className="rounded-lg border border-input bg-suggested-chip px-4 py-2.5 text-[14px] text-body-text transition hover:border-sidebar-label hover:text-foreground"
                     >
                       {question}
                     </button>
@@ -479,288 +385,407 @@ function SiemenschApp() {
                 </div>
               </div>
             ) : (
-              <div className="mx-auto mt-12 max-w-5xl space-y-12 pb-6">
+              <div className="mx-auto mt-8 max-w-5xl space-y-8 pb-6">
                 {messages.map((message) =>
                   message.role === "user" ? (
                     <div key={message.id} className="flex justify-end">
-                      <div className="max-w-[58%] whitespace-pre-wrap rounded-2xl bg-chat-bubble px-5 py-3.5 text-[14px] leading-[1.6] text-body-text">
+                      <div className="max-w-[70%] whitespace-pre-wrap rounded-lg bg-chat-bubble px-4 py-3 text-body-text">
                         {message.text}
                       </div>
                     </div>
                   ) : (
-                    <div key={message.id} className="mx-auto max-w-3xl space-y-5 text-center">
-                      <p className="text-[14px] font-normal leading-[1.6] text-body-text">{message.text}</p>
-                      <div className="flex flex-wrap justify-center gap-2.5">
-                        {message.clauses?.map((clauseNumber) => {
-                          const clause = clauses.find((item) => item.number === clauseNumber);
-                          if (!clause) return null;
-                          return (
-                            <button
-                              key={clause.number}
-                              onClick={() => selectClause(clause.number)}
-                              className="inline-flex items-center gap-2 rounded-full bg-chip-blue px-3.5 py-2 text-xs font-medium text-accent-blue transition hover:bg-active-item"
-                            >
-                              <FileText className="h-3.5 w-3.5" />
-                              Clause {clause.number} · {shortClauseTitle(clause.title)}
-                              <ArrowRight className="h-3.5 w-3.5" />
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="flex flex-wrap justify-center gap-8 text-[13px] font-normal text-muted-foreground">
-                        <button className="inline-flex items-center gap-2 rounded-md px-2 py-1 hover:bg-muted hover:text-foreground">
-                          <Copy className="h-4 w-4" /> Copy
-                        </button>
-                        <button
-                          onClick={() => submitQuestion(messages.find((item) => item.id === message.id - 1)?.text ?? "")}
-                          className="inline-flex items-center gap-2 rounded-md px-2 py-1 hover:bg-muted hover:text-foreground"
-                        >
-                          <RefreshCw className="h-4 w-4" /> Regenerate
-                        </button>
-                        <button
-                          onClick={() => setFeedbackOpen(true)}
-                          className="inline-flex items-center gap-2 rounded-md px-2 py-1 hover:bg-muted hover:text-foreground"
-                        >
-                          <MessageCircle className="h-4 w-4" /> Feedback
-                        </button>
-                      </div>
-                    </div>
+                    <AnswerMessage
+                      key={message.id}
+                      message={message}
+                      onSelectRule={setSelectedRuleId}
+                      onFeedback={() => setFeedbackOpen(true)}
+                    />
                   ),
+                )}
+                {loading && (
+                  <div className="mx-auto flex max-w-3xl items-center gap-2 text-sm text-muted-foreground">
+                    <Bot className="h-4 w-4" />
+                    Reading playbook sources...
+                  </div>
                 )}
               </div>
             )}
           </div>
 
-          <footer className="pointer-events-none absolute bottom-0 left-0 right-0 px-6 pb-7 pt-4">
+          <footer className="pointer-events-none absolute bottom-0 left-0 right-0 px-6 pb-6 pt-4">
             <div className="pointer-events-auto mx-auto max-w-[860px]">
-              <div className="rounded-2xl border border-input bg-background px-[18px] py-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-                <div className="flex items-center gap-3">
+              <div className="rounded-lg border border-input bg-background px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                <div className="flex items-end gap-3">
                   <textarea
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();
-                        submitQuestion();
+                        void submitQuestion();
                       }
                     }}
                     placeholder="Ask the playbook..."
                     rows={1}
-                    className="max-h-32 min-h-12 flex-1 resize-none bg-transparent px-0 py-3 text-[14px] leading-[1.6] text-body-text outline-none placeholder:text-muted-foreground"
+                    className="max-h-32 min-h-12 flex-1 resize-none bg-transparent py-3 text-[14px] leading-[1.6] text-body-text outline-none placeholder:text-muted-foreground"
                   />
                   <button
-                    onClick={() => submitQuestion()}
+                    onClick={() => void submitQuestion()}
+                    disabled={loading}
                     aria-label="Send message"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
                   >
                     <Send className="h-5 w-5" />
                   </button>
                 </div>
-                <div className="mt-3 flex items-center gap-4 text-[12px] font-normal text-sidebar-label">
-                  <button className="inline-flex items-center gap-2 rounded-md px-0 py-1 hover:text-muted-foreground">
-                    <Paperclip className="h-4 w-4" /> Attach
-                  </button>
-                  <span className="h-6 w-px bg-border" />
+                <div className="mt-2 flex items-center gap-4 text-[12px] text-sidebar-label">
                   <button
                     onClick={() => setFeedbackOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-md px-0 py-1 hover:text-muted-foreground"
+                    className="inline-flex items-center gap-2 hover:text-muted-foreground"
                   >
-                    <MessageCircle className="h-4 w-4" /> Leave Feedback
+                    <MessageCircle className="h-4 w-4" /> Suggest Update
                   </button>
+                  <span className="h-5 w-px bg-border" />
+                  <span>Shift+Enter for a line break</span>
                 </div>
               </div>
-              <p className="mt-3 text-center text-xs font-normal text-muted-foreground">
-                AI-generated answers are based on the NDA Playbook. Always verify with your legal team.
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Answers are source-grounded playbook guidance, not legal certainty.
               </p>
             </div>
           </footer>
         </section>
 
-        {selectedClause && (
-          <ClausePanel
-            role={role}
-            clause={selectedClause}
-            editedClause={editedClause}
-            isEditingClause={isEditingClause}
-            onClose={() => setSelectedClauseNumber(null)}
-            onFeedback={() => setFeedbackOpen(true)}
-            onEdit={() => setIsEditingClause(true)}
-            onEditedClauseChange={setEditedClause}
-          />
-        )}
+        <RulePanel
+          role={role}
+          ruleDetail={selectedRule}
+          updates={updates.filter((update) => update.target_rule_id === selectedRule?.rule.rule_id)}
+          updateDraft={updateDraft}
+          onUpdateDraftChange={setUpdateDraft}
+          onSubmitUpdate={() => void submitProposedUpdate()}
+          onApprove={(update) => void approve(update)}
+          onReject={(update) => void reject(update)}
+          onClose={() => setSelectedRuleId(null)}
+        />
       </div>
 
-      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} onSubmit={submitFeedback} />
+      <FeedbackDialog
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        selectedRule={selectedRule}
+        updateDraft={updateDraft}
+        onUpdateDraftChange={setUpdateDraft}
+        onSubmit={() => {
+          setFeedbackOpen(false);
+          void submitProposedUpdate();
+        }}
+      />
       <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
     </main>
   );
 }
 
+function StatusRow({ label, value, good }: { label: string; value: string; good: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sidebar-label">{label}</span>
+      <span
+        className={`inline-flex items-center gap-1.5 ${good ? "text-position-green" : "text-position-yellow"}`}
+      >
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        {value}
+      </span>
+    </div>
+  );
+}
+
 function VaultGraph({
-  selectedNode,
-  onSelectNode,
+  rules,
+  selectedRuleId,
+  onSelectRule,
 }: {
-  selectedNode: string;
-  onSelectNode: (nodeId: string) => void;
+  rules: RuleSummary[];
+  selectedRuleId: string | null;
+  onSelectRule: (ruleId: string) => void;
 }) {
-  const nodeById = useMemo(() => new Map(vaultNodes.map((node) => [node.id, node])), []);
-  const selected = nodeById.get(selectedNode) ?? vaultNodes[0];
+  const visibleRules = rules.slice(0, 10);
+  const center = { x: 380, y: 115 };
+  const nodes = visibleRules.map((rule, index) => {
+    const angle = (Math.PI * 2 * index) / Math.max(visibleRules.length, 1) - Math.PI / 2;
+    return {
+      rule,
+      x: center.x + Math.cos(angle) * 245,
+      y: center.y + Math.sin(angle) * 82,
+    };
+  });
 
   return (
-    <section className="mx-auto h-[32vh] min-h-[220px] w-full max-w-5xl border-b border-border pb-4">
-      <div className="relative h-full overflow-hidden rounded-2xl bg-panel-card">
-        <svg viewBox="0 0 760 250" role="img" aria-label="Obsidian-style vault graph" className="h-full w-full">
-          {vaultLinks.map((link) => {
-            const from = nodeById.get(link.from);
-            const to = nodeById.get(link.to);
-            if (!from || !to) return null;
-
-            return (
-              <line
-                key={`${link.from}-${link.to}`}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-                className="stroke-graph-link"
-                strokeWidth={selectedNode === link.from || selectedNode === link.to ? 1.8 : 1.1}
-              />
-            );
-          })}
-          {vaultNodes.map((node) => {
-            const isSelected = selectedNode === node.id;
-            const radius = node.type === "root" ? 13 : node.type === "folder" ? 10 : 6;
-            const fillClass = isSelected
-              ? "fill-graph-selected"
-              : node.type === "root"
-                ? "fill-graph-root"
-                : node.type === "folder"
-                  ? "fill-graph-folder"
-                  : "fill-graph-file";
-
+    <section className="mx-auto h-[30vh] min-h-[220px] w-full max-w-5xl border-b border-border pb-4">
+      <div className="relative h-full overflow-hidden rounded-lg bg-panel-card">
+        <svg
+          viewBox="0 0 760 250"
+          role="img"
+          aria-label="Playbook vault graph"
+          className="h-full w-full"
+        >
+          {nodes.map((node) => (
+            <line
+              key={`link-${node.rule.rule_id}`}
+              x1={center.x}
+              y1={center.y}
+              x2={node.x}
+              y2={node.y}
+              className="stroke-graph-link"
+              strokeWidth={selectedRuleId === node.rule.rule_id ? 1.8 : 1.1}
+            />
+          ))}
+          <circle cx={center.x} cy={center.y} r={14} className="fill-graph-root" />
+          <text
+            x={center.x}
+            y={center.y + 32}
+            textAnchor="middle"
+            className="select-none fill-muted-foreground text-[10px]"
+          >
+            NDA Vault
+          </text>
+          {nodes.map((node) => {
+            const selected = selectedRuleId === node.rule.rule_id;
             return (
               <g
-                key={node.id}
+                key={node.rule.rule_id}
                 role="button"
                 tabIndex={0}
-                onClick={() => onSelectNode(node.id)}
+                onClick={() => onSelectRule(node.rule.rule_id)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") onSelectNode(node.id);
+                  if (event.key === "Enter" || event.key === " ") onSelectRule(node.rule.rule_id);
                 }}
                 className="cursor-pointer outline-none"
               >
                 <circle
                   cx={node.x}
                   cy={node.y}
-                  r={radius + 9}
-                  className={`${isSelected ? "fill-graph-selected/10" : "fill-transparent"} transition-colors`}
+                  r={selected ? 16 : 12}
+                  className={selected ? "fill-graph-selected/10" : "fill-transparent"}
                 />
-                <circle cx={node.x} cy={node.y} r={radius} className={`${fillClass} transition-colors`} />
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={selected ? 8 : 6}
+                  className={selected ? "fill-graph-selected" : "fill-graph-file"}
+                />
                 <text
                   x={node.x}
-                  y={node.y + radius + 16}
+                  y={node.y + 20}
                   textAnchor="middle"
-                  className="select-none fill-muted-foreground text-[10px] transition-colors"
+                  className="select-none fill-muted-foreground text-[9px]"
                 >
-                  {node.label}
+                  {truncate(node.rule.topic, 18)}
                 </text>
               </g>
             );
           })}
         </svg>
-        <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-input bg-background/80 px-3 py-1.5 text-[12px] text-muted-foreground shadow-[0_1px_3px_rgba(0,0,0,0.06)] backdrop-blur">
-          {selected.type === "folder" ? <Folder className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
-          <span>{selected.label}</span>
+        <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-input bg-background/80 px-3 py-1.5 text-[12px] text-muted-foreground backdrop-blur">
+          <Folder className="h-3.5 w-3.5" />
+          <span>{rules.length} rule files</span>
         </div>
       </div>
     </section>
   );
 }
 
-function ClausePanel({
-  role,
-  clause,
-  editedClause,
-  isEditingClause,
-  onClose,
+function AnswerMessage({
+  message,
+  onSelectRule,
   onFeedback,
-  onEdit,
-  onEditedClauseChange,
 }: {
-  role: Role;
-  clause: Clause;
-  editedClause: string;
-  isEditingClause: boolean;
-  onClose: () => void;
+  message: ChatMessage;
+  onSelectRule: (ruleId: string) => void;
   onFeedback: () => void;
-  onEdit: () => void;
-  onEditedClauseChange: (value: string) => void;
 }) {
-  const isBusinessUser = role === "Business User";
+  const answer = message.answer;
 
   return (
-    <aside className="hidden w-[340px] shrink-0 overflow-y-auto border-l bg-background p-4 text-[14px] leading-[1.6] text-body-text lg:block">
+    <div className="mx-auto max-w-4xl space-y-4">
+      <div className="whitespace-pre-wrap text-[14px] leading-7 text-body-text">{message.text}</div>
+      {answer && (
+        <>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span
+              className={`rounded-full px-2.5 py-1 ${confidenceClass(answer.confidence.label)}`}
+            >
+              {answer.confidence.label} · {Math.round(answer.confidence.score * 100)}%
+            </span>
+            <span className="text-muted-foreground">{answer.confidence.reason}</span>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {answer.sources.map((source) => (
+              <button
+                key={`${source.file}-${source.section}`}
+                onClick={() => onSelectRule(ruleIdFromPath(source.file) ?? "")}
+                className="rounded-lg border bg-panel-card p-3 text-left hover:bg-muted"
+              >
+                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span>{source.section}</span>
+                  <span>{Math.round(source.retrieval_score * 100)}%</span>
+                </div>
+                <p className="mt-2 line-clamp-3 text-sm text-body-text">{source.snippet}</p>
+                <GitLine source={source} />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      <button
+        onClick={onFeedback}
+        className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
+        <MessageCircle className="h-4 w-4" /> Suggest update
+      </button>
+    </div>
+  );
+}
+
+function RulePanel({
+  role,
+  ruleDetail,
+  updates,
+  updateDraft,
+  onUpdateDraftChange,
+  onSubmitUpdate,
+  onApprove,
+  onReject,
+  onClose,
+}: {
+  role: Role;
+  ruleDetail: RuleDetail | null;
+  updates: ProposedUpdate[];
+  updateDraft: { section: string; newText: string; reason: string };
+  onUpdateDraftChange: (draft: { section: string; newText: string; reason: string }) => void;
+  onSubmitUpdate: () => void;
+  onApprove: (update: ProposedUpdate) => void;
+  onReject: (update: ProposedUpdate) => void;
+  onClose: () => void;
+}) {
+  if (!ruleDetail) return null;
+  const rule = ruleDetail.rule;
+  const lawyerView = role !== "Business User";
+
+  return (
+    <aside className="hidden w-[390px] shrink-0 overflow-y-auto border-l bg-background p-4 text-[14px] leading-[1.6] text-body-text xl:block">
       <div className="flex items-start justify-between gap-4 border-b pb-4">
         <div>
-          <h2 className="text-base font-medium leading-6 text-foreground">
-            Clause {clause.number} · {clause.title}
-          </h2>
-          {isBusinessUser && (
-            <span className="mt-2 inline-flex rounded-full bg-suggested-chip px-2.5 py-1 text-xs font-normal text-body-text">
-              Plain Language View
-            </span>
-          )}
+          <h2 className="text-base font-medium leading-6 text-foreground">{rule.topic}</h2>
+          <span className="mt-2 inline-flex rounded-full bg-suggested-chip px-2.5 py-1 text-xs text-body-text">
+            {lawyerView ? "Lawyer audit view" : "Plain language view"}
+          </span>
         </div>
-        <button onClick={onClose} aria-label="Close clause panel" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+        <button
+          onClick={onClose}
+          aria-label="Close rule panel"
+          className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       <div className="mt-4 space-y-3">
-        <InfoCard title="Why it matters">
-          {isBusinessUser ? simplifyText(clause.why) : clause.why}
-        </InfoCard>
-        <InfoCard title="What to watch for">
-          {isBusinessUser ? simplifyText(clause.watch) : clause.watch}
-        </InfoCard>
-        <div className="rounded-xl border bg-panel-card p-4">
-          <h3 className="text-sm font-medium text-foreground">Positions</h3>
-          <div className="mt-3 space-y-3 text-sm">
-            <PositionRow tone="green" label="Preferred" text={clause.preferred} />
-            <PositionRow tone="yellow" label="Fallback 1" text={clause.fallback1} />
-            <PositionRow tone="yellow" label="Fallback 2" text={clause.fallback2} />
-            <PositionRow tone="red" label="Red Line" text={clause.redLine} />
-          </div>
-        </div>
-        <InfoCard title="Escalation Trigger">
-          <span className="italic text-muted-foreground">{clause.escalation}</span>
-        </InfoCard>
+        <InfoCard title="Standard Position">{rule.standard_position || "Not specified."}</InfoCard>
+        <InfoCard title="Fallback Position">{formatList(rule.fallback_positions)}</InfoCard>
+        <InfoCard title="Red Line">{rule.red_line || "Not specified."}</InfoCard>
+        <InfoCard title="Escalation Logic">{rule.escalation_logic || "Not specified."}</InfoCard>
 
-        {role === "Admin" && (
-          <div className="space-y-3 rounded-xl border bg-panel-card p-4">
-            <button
-              onClick={onEdit}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Edit Clause
-            </button>
-            {isEditingClause && (
-              <textarea
-                value={editedClause}
-                onChange={(event) => onEditedClauseChange(event.target.value)}
-                className="min-h-36 w-full resize-none rounded-lg border bg-background p-3 text-sm leading-6 outline-none focus:border-sidebar-label"
-              />
-            )}
-          </div>
-        )}
-
-        {role !== "Business User" && (
-          <button
-            onClick={onFeedback}
-            className="w-full rounded-lg border border-input px-4 py-2.5 text-sm font-normal text-foreground hover:bg-muted"
-          >
-            Leave Feedback
-          </button>
+        {lawyerView && (
+          <>
+            <InfoCard title="Git Metadata">
+              <span className="block">
+                Commit: {shortHash(ruleDetail.git_metadata.last_commit_hash)}
+              </span>
+              <span className="block">By: {ruleDetail.git_metadata.last_changed_by}</span>
+              <span className="block">Message: {ruleDetail.git_metadata.last_commit_message}</span>
+            </InfoCard>
+            <section className="rounded-lg border bg-panel-card p-4">
+              <h3 className="text-sm font-medium text-foreground">Propose Update</h3>
+              <div className="mt-3 space-y-2">
+                <Select
+                  value={updateDraft.section}
+                  onValueChange={(section) => onUpdateDraftChange({ ...updateDraft, section })}
+                >
+                  <SelectTrigger className="h-9 rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Standard Position">Standard Position</SelectItem>
+                    <SelectItem value="Fallback Position">Fallback Position</SelectItem>
+                    <SelectItem value="Red Line">Red Line</SelectItem>
+                    <SelectItem value="Escalation Logic">Escalation Logic</SelectItem>
+                    <SelectItem value="Suggested Language">Suggested Language</SelectItem>
+                  </SelectContent>
+                </Select>
+                <textarea
+                  value={updateDraft.newText}
+                  onChange={(event) =>
+                    onUpdateDraftChange({ ...updateDraft, newText: event.target.value })
+                  }
+                  placeholder="New section text..."
+                  className="min-h-24 w-full resize-none rounded-lg border bg-background p-3 text-sm outline-none focus:border-sidebar-label"
+                />
+                <input
+                  value={updateDraft.reason}
+                  onChange={(event) =>
+                    onUpdateDraftChange({ ...updateDraft, reason: event.target.value })
+                  }
+                  placeholder="Reason for legal review"
+                  className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-sidebar-label"
+                />
+                <button
+                  onClick={onSubmitUpdate}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  Create Proposal
+                </button>
+              </div>
+            </section>
+            <section className="rounded-lg border bg-panel-card p-4">
+              <h3 className="text-sm font-medium text-foreground">Updates</h3>
+              <div className="mt-3 space-y-3">
+                {updates.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No proposed updates for this rule.
+                  </p>
+                )}
+                {updates.map((update) => (
+                  <div key={update.update_id} className="rounded-lg border bg-background p-3">
+                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                      <span>{update.status}</span>
+                      <span>{update.proposed_change.section}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-body-text">{update.reason}</p>
+                    <DiffBlock
+                      oldText={update.proposed_change.old_text || ""}
+                      newText={update.proposed_change.new_text}
+                    />
+                    {update.status === "pending" && (
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => onApprove(update)}
+                          className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => onReject(update)}
+                          className="rounded-md border px-3 py-1.5 text-xs"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </div>
     </aside>
@@ -769,54 +794,56 @@ function ClausePanel({
 
 function InfoCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border bg-panel-card p-4">
+    <section className="rounded-lg border bg-panel-card p-4">
       <h3 className="text-sm font-medium text-foreground">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{children}</p>
+      <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+        {children}
+      </div>
     </section>
-  );
-}
-
-function PositionRow({ tone, label, text }: { tone: "green" | "yellow" | "red"; label: string; text: string }) {
-  const toneClass = {
-    green: "text-position-green",
-    yellow: "text-position-yellow",
-    red: "text-red-line",
-  }[tone];
-  const dot = { green: "bg-position-green", yellow: "bg-position-yellow", red: "bg-red-line" }[tone];
-
-  return (
-    <div className="flex gap-2.5">
-      <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${dot}`} />
-      <p className="leading-6 text-muted-foreground">
-        <span className={`font-medium ${toneClass}`}>{label}</span> — {text}
-      </p>
-    </div>
   );
 }
 
 function FeedbackDialog({
   open,
   onOpenChange,
+  selectedRule,
+  updateDraft,
+  onUpdateDraftChange,
   onSubmit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  selectedRule: RuleDetail | null;
+  updateDraft: { section: string; newText: string; reason: string };
+  onUpdateDraftChange: (draft: { section: string; newText: string; reason: string }) => void;
   onSubmit: () => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-xl border bg-background shadow-sm sm:max-w-md">
+      <DialogContent className="rounded-lg border bg-background shadow-sm sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Leave Feedback</DialogTitle>
-          <DialogDescription>Tell the legal team what should be reviewed.</DialogDescription>
+          <DialogTitle>Suggest Update</DialogTitle>
+          <DialogDescription>
+            {selectedRule
+              ? `Create a lawyer-reviewed proposal for ${selectedRule.rule.topic}.`
+              : "Select a rule first."}
+          </DialogDescription>
         </DialogHeader>
         <textarea
-          placeholder="Describe your feedback..."
-          className="min-h-32 w-full resize-none rounded-lg border bg-background p-3 text-sm outline-none focus:border-sidebar-label"
+          value={updateDraft.newText}
+          onChange={(event) => onUpdateDraftChange({ ...updateDraft, newText: event.target.value })}
+          placeholder="Proposed playbook text..."
+          className="min-h-28 w-full resize-none rounded-lg border bg-background p-3 text-sm outline-none focus:border-sidebar-label"
+        />
+        <input
+          value={updateDraft.reason}
+          onChange={(event) => onUpdateDraftChange({ ...updateDraft, reason: event.target.value })}
+          placeholder="Why should legal review this?"
+          className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-sidebar-label"
         />
         <label className="flex items-center gap-2 text-sm text-foreground">
           <Checkbox />
-          Flag as Outdated
+          Flag as outdated
         </label>
         <DialogFooter>
           <button
@@ -831,31 +858,161 @@ function FeedbackDialog({
   );
 }
 
-function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function UploadDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-xl border bg-background shadow-sm sm:max-w-lg">
+      <DialogContent className="rounded-lg border bg-background shadow-sm sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Upload Playbook</DialogTitle>
-          <DialogDescription>Add a playbook file to start a new contract workspace.</DialogDescription>
+          <DialogDescription>
+            Ingestion UI is reserved for WP9. Use the seed script for now.
+          </DialogDescription>
         </DialogHeader>
-        <div className="flex min-h-52 flex-col items-center justify-center rounded-xl border border-dashed bg-panel-card p-8 text-center">
+        <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-dashed bg-panel-card p-8 text-center">
           <UploadCloud className="h-10 w-10 text-muted-foreground" />
-          <p className="mt-4 text-sm font-medium text-foreground">Drop your playbook here</p>
-          <p className="mt-1 text-xs text-muted-foreground">PDF, DOCX, or TXT · UI preview only</p>
+          <p className="mt-4 text-sm font-medium text-foreground">DOCX, PDF, XLSX, or CSV</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Backend ingestion endpoint comes next.
+          </p>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function shortClauseTitle(title: string) {
-  return title.replace(/ \(.+\)/, "");
+function GitLine({ source }: { source: SourceReference }) {
+  return (
+    <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+      <GitCommit className="h-3.5 w-3.5" />
+      <span>{shortHash(source.git_metadata.last_commit_hash)}</span>
+      <span className="truncate">{source.git_metadata.last_commit_message}</span>
+    </div>
+  );
 }
 
-function simplifyText(text: string) {
+function DiffBlock({ oldText, newText }: { oldText: string; newText: string }) {
+  const lines = diffLines(oldText, newText);
+  const added = lines.filter((line) => line.type === "added").length;
+  const removed = lines.filter((line) => line.type === "removed").length;
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-md border bg-background text-xs">
+      <div className="flex items-center justify-between border-b bg-muted px-2 py-1.5 text-muted-foreground">
+        <span>Diff</span>
+        <span>
+          +{added} / -{removed}
+        </span>
+      </div>
+      <div className="max-h-40 overflow-auto font-mono">
+        {lines.length === 0 ? (
+          <div className="px-2 py-1.5 text-muted-foreground">No difference detected.</div>
+        ) : (
+          lines.map((line, index) => (
+            <div
+              key={`${line.type}-${index}-${line.text}`}
+              className={`grid grid-cols-[24px_1fr] gap-2 px-2 py-1 ${
+                line.type === "added"
+                  ? "bg-position-green/10 text-position-green"
+                  : line.type === "removed"
+                    ? "bg-red-line/10 text-red-line"
+                    : "text-muted-foreground"
+              }`}
+            >
+              <span>{line.type === "added" ? "+" : line.type === "removed" ? "-" : " "}</span>
+              <span className="whitespace-pre-wrap">{line.text || " "}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+type DiffLine = {
+  type: "added" | "removed" | "unchanged";
+  text: string;
+};
+
+function diffLines(oldText: string, newText: string): DiffLine[] {
+  const oldLines = normalizeDiffText(oldText);
+  const newLines = normalizeDiffText(newText);
+  const rows = oldLines.length + 1;
+  const columns = newLines.length + 1;
+  const table = Array.from({ length: rows }, () => Array<number>(columns).fill(0));
+
+  for (let oldIndex = oldLines.length - 1; oldIndex >= 0; oldIndex -= 1) {
+    for (let newIndex = newLines.length - 1; newIndex >= 0; newIndex -= 1) {
+      table[oldIndex][newIndex] =
+        oldLines[oldIndex] === newLines[newIndex]
+          ? table[oldIndex + 1][newIndex + 1] + 1
+          : Math.max(table[oldIndex + 1][newIndex], table[oldIndex][newIndex + 1]);
+    }
+  }
+
+  const diff: DiffLine[] = [];
+  let oldIndex = 0;
+  let newIndex = 0;
+  while (oldIndex < oldLines.length && newIndex < newLines.length) {
+    if (oldLines[oldIndex] === newLines[newIndex]) {
+      diff.push({ type: "unchanged", text: oldLines[oldIndex] });
+      oldIndex += 1;
+      newIndex += 1;
+    } else if (table[oldIndex + 1][newIndex] >= table[oldIndex][newIndex + 1]) {
+      diff.push({ type: "removed", text: oldLines[oldIndex] });
+      oldIndex += 1;
+    } else {
+      diff.push({ type: "added", text: newLines[newIndex] });
+      newIndex += 1;
+    }
+  }
+  while (oldIndex < oldLines.length) {
+    diff.push({ type: "removed", text: oldLines[oldIndex] });
+    oldIndex += 1;
+  }
+  while (newIndex < newLines.length) {
+    diff.push({ type: "added", text: newLines[newIndex] });
+    newIndex += 1;
+  }
+  return diff;
+}
+
+function normalizeDiffText(text: string) {
   return text
-    .replace("SIEMENSCH", "the company")
-    .replace("commercially unreasonable", "too burdensome")
-    .replace("confidentiality duties", "confidentiality obligations");
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().length > 0);
+}
+
+function latestGitMetadata(rules: RuleSummary[]) {
+  return rules.find((rule) => rule.git_metadata?.last_commit_hash)?.git_metadata ?? null;
+}
+
+function ruleIdFromPath(path: string) {
+  const filename = path.split("/").pop();
+  return filename?.replace(/\.md$/, "") || null;
+}
+
+function shortHash(hash?: string | null) {
+  if (!hash) return "none";
+  return hash === "uncommitted" ? hash : hash.slice(0, 8);
+}
+
+function formatList(values: string[]) {
+  return values.length ? values.map((value) => `- ${value}`).join("\n") : "Not specified.";
+}
+
+function truncate(value: string, max: number) {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+function confidenceClass(label: AskResponse["confidence"]["label"]) {
+  if (label === "high") return "bg-position-green/10 text-position-green";
+  if (label === "medium") return "bg-position-yellow/10 text-position-yellow";
+  return "bg-red-line/10 text-red-line";
 }

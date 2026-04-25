@@ -54,7 +54,7 @@ The mission is to make the playbook itself come alive. Contracts can provide evi
 | WP5 Retrieval And Indexing | Done | Chroma index from vault Markdown sections using batched/cached Gemini embeddings and real `/reindex`. |
 | WP6 Ask Playbook | Done | Retrieval-grounded Gemini answer flow, confidence heuristic, sources, and low-evidence refusal. |
 | WP7 Proposed Update Workflow | Done | Proposed updates are persisted, approve applies vault changes, commits affected files, and reindexes. |
-| WP8 Frontend Integration | Pending | Lovable React UI against stable backend contracts. |
+| WP8 Frontend Integration | Done | Existing Lovable/TanStack app simplified and bound to live backend contracts. |
 | WP9 Ingestion MVP | Partially covered | Adaptive extraction exists; upload/ingest API workflow still pending. |
 | WP10 Demo Hardening | Pending | Reset, env validation, predictable demo script, polish. |
 
@@ -293,11 +293,15 @@ Current critical path before WP5:
 
 ### WP8: Frontend Integration
 
+**Status:** Complete
+
 **Owner lane:** Frontend Core, Frontend Demo UX
 
 **Scope**
 
-- Build Lovable React app against FastAPI.
+- Use the existing `frontend/` Lovable/TanStack/Vite app as the canonical in-repo frontend.
+- Simplify the large single-page mock into functional frontend code without deleting product features.
+- Bind the UI to FastAPI through a typed client using `VITE_API_BASE_URL`.
 - Required views:
   - Dashboard with playbook status and latest Git update
   - Ask Playbook chat
@@ -305,6 +309,16 @@ Current critical path before WP5:
   - Lawyer rule viewer with source traceability
   - Pending updates approval screen with diff/audit details
   - Lightweight ingest/reset controls if time allows
+
+**Subpackages**
+
+- **WP8.1 Backend Frontend Readiness:** Complete; CORS/env support added.
+- **WP8.2 Frontend API Client:** Complete; typed API functions cover playbooks, rules, ask, updates, approve/reject, and reindex.
+- **WP8.3 Live Rule Explorer:** Complete; hardcoded clause data replaced with live playbook/rule data while keeping graph and rule panel.
+- **WP8.4 Live Ask Flow:** Complete; chat composer uses `POST /ask` and renders answer, confidence, sources, snippets, and Git metadata.
+- **WP8.5 Proposed Update UI:** Complete; create/list/approve/reject proposed updates with old/new text review.
+- **WP8.6 Demo Controls:** Complete; API health, refresh, upload placeholder, and reindex controls are present.
+- **WP8.7 Frontend Docs And Verification:** Complete; local startup docs added and build/lint checks pass.
 
 **Acceptance Criteria**
 
