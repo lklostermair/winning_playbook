@@ -51,8 +51,8 @@ async def approve_update(
     return UpdateDecisionResponse(
         update_id=update_id,
         status="approved",
-        commit_hash="stub-approved-commit",
-        reindexed=True,
+        commit_hash=None,
+        reindexed=False,
     )
 
 

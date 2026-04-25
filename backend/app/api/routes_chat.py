@@ -1,29 +1,25 @@
-from datetime import datetime, timezone
+from fastapi import APIRouter, HTTPException, status
 
-from fastapi import APIRouter
-
+from app.core.config import get_settings
 from app.schemas.chat import AskQuestionRequest, AskQuestionResponse, Confidence
-from app.schemas.source import GitMetadata, SourceReference
+from app.schemas.source import SourceReference
+from app.services.git_service import GitService, GitServiceError
 
 router = APIRouter(tags=["chat"])
 
 
-def _stub_git_metadata() -> GitMetadata:
-    return GitMetadata(
-        last_changed_by="system",
-        last_changed_at=datetime(2026, 4, 25, 12, 0, tzinfo=timezone.utc),
-        last_commit_hash="stub-uncommitted",
-        last_commit_message="WP1 stub API contract",
-    )
-
-
 def _stub_source() -> SourceReference:
+    source_file = get_settings().vault_dir / "nda" / "rules" / "other-liabilities-indemnification-limitation-of-liability.md"
+    try:
+        git_metadata = GitService().get_last_change_metadata(source_file)
+    except GitServiceError as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
     return SourceReference(
-        file="vault/nda/rules/liability-for-correctness.md",
+        file=str(source_file),
         section="Red Line",
         snippet="Stub source: unlimited or uncapped liability must be escalated before acceptance.",
         retrieval_score=0.86,
-        git_metadata=_stub_git_metadata(),
+        git_metadata=git_metadata,
     )
 
 

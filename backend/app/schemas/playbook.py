@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.source import SourceDocument
+from app.schemas.source import GitMetadata, SourceDocument
 
 RuleStatus = Literal["draft", "approved", "pending_update", "archived"]
 
@@ -21,6 +21,7 @@ class RuleSummary(BaseModel):
     rule_id: str
     topic: str
     status: RuleStatus
+    git_metadata: GitMetadata | None = None
 
 
 class PlaybookRulesResponse(BaseModel):
@@ -48,3 +49,4 @@ class RuleDetailResponse(BaseModel):
     playbook_id: str
     rule: RuleTemplate
     markdown: str
+    git_metadata: GitMetadata
