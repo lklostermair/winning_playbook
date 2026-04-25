@@ -1,0 +1,25 @@
+{
+  "playbook_id": "employment",
+  "rule_id": "ip-rights",
+  "topic": "IP Rights",
+  "standard_position": "IP created during employment and related to the company's business or duties.",
+  "fallback_positions": [
+    "Broad with carve-out"
+  ],
+  "red_line": "All inventions assigned",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "Ownership of work",
+  "negotiation_tips": [
+    "Overreach",
+    "Private IP"
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/employment/draft_ingest/ingest_20260425202627_42a4fdec/sources/employment_playbook_v2.docx",
+      "location": "IP Rights section"
+    }
+  ]
+}
