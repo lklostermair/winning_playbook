@@ -13,6 +13,13 @@ export type PlaybookSummary = {
   description?: string | null;
 };
 
+export type GitIdentity = {
+  name?: string | null;
+  email?: string | null;
+  github_username?: string | null;
+  avatar_url?: string | null;
+};
+
 export type RuleSummary = {
   rule_id: string;
   topic: string;
@@ -49,6 +56,8 @@ export type Confidence = {
 };
 
 export type SourceReference = {
+  playbook_id: string;
+  rule_id: string;
   file: string;
   section: string;
   snippet: string;
@@ -62,21 +71,21 @@ export type AskResponse = {
   sources: SourceReference[];
 };
 
+export type ConversationMessage = {
+  role: "user" | "assistant";
+  text: string;
+};
+
 export type ProposedChange = {
   section: string;
   old_text?: string | null;
   new_text: string;
 };
 
-export type ProposedUpdate = {
-  update_id: string;
-  playbook_id: string;
-  target_rule_id: string;
-  status: "pending" | "approved" | "rejected";
+export type RuleUpdateDraft = {
+  section: string;
   reason: string;
-  proposed_change: ProposedChange;
-  suggested_by: string;
-  suggested_at: string;
+  new_text: string;
 };
 
 export type UpdateDecision = {
@@ -93,6 +102,7 @@ export type IngestDraftSummary = {
   source_filenames: string[];
   rule_count: number;
   created_at: string;
+  source_kind: "playbook_source" | "contract_set";
 };
 
 export type IngestDraftDetail = IngestDraftSummary & {
@@ -106,8 +116,16 @@ export type PublishIngestResponse = {
   reindexed: boolean;
 };
 
+export type VoiceTranscriptionResponse = {
+  text: string;
+};
+
 export async function getHealth() {
   return request<{ status: string }>("/health");
+}
+
+export async function getIdentity() {
+  return request<GitIdentity>("/identity");
 }
 
 export async function getPlaybooks() {
@@ -128,55 +146,52 @@ export async function getRule(playbookId: string, ruleId: string) {
   );
 }
 
-export async function askPlaybook(playbookId: string, question: string) {
+export async function askPlaybook(
+  playbookIds: string[],
+  question: string,
+  conversation: ConversationMessage[] = [],
+) {
+  const selectedPlaybookIds = playbookIds.length > 0 ? playbookIds : ["nda"];
   return request<AskResponse>("/ask", {
     method: "POST",
     body: JSON.stringify({
-      playbook_id: playbookId,
+      playbook_id: selectedPlaybookIds[0],
+      playbook_ids: selectedPlaybookIds,
       task_type: "ask_playbook",
       question,
+      conversation,
     }),
   });
 }
 
-export async function getUpdates(playbookId: string) {
-  const response = await request<{ updates: ProposedUpdate[] }>(
-    `/updates?playbook_id=${encodeURIComponent(playbookId)}`,
-  );
-  return response.updates;
+export async function generateChatTitle(question: string) {
+  return request<{ title: string }>("/chat/title", {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
 }
 
-export async function createUpdate(payload: {
+export async function draftRuleUpdate(payload: {
   playbook_id: string;
   target_rule_id: string;
-  reason: string;
-  proposed_change: ProposedChange;
-  suggested_by: string;
+  instruction: string;
 }) {
-  return request<{ update_id: string; status: ProposedUpdate["status"] }>("/updates", {
+  return request<RuleUpdateDraft>("/updates/draft", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-export async function approveUpdate(updateId: string, approvedBy: string) {
-  return request<UpdateDecision>(`/updates/${encodeURIComponent(updateId)}/approve`, {
+export async function applyRuleUpdate(payload: {
+  playbook_id: string;
+  target_rule_id: string;
+  reason: string;
+  proposed_change: ProposedChange;
+  approved_by: string;
+}) {
+  return request<UpdateDecision>("/updates/apply", {
     method: "POST",
-    body: JSON.stringify({ approved_by: approvedBy }),
-  });
-}
-
-export async function rejectUpdate(updateId: string, rejectedBy: string, reason: string) {
-  return request<UpdateDecision>(`/updates/${encodeURIComponent(updateId)}/reject`, {
-    method: "POST",
-    body: JSON.stringify({ rejected_by: rejectedBy, reason }),
-  });
-}
-
-export async function reindexPlaybook(playbookId: string) {
-  return request<{ playbook_id: string; chunks_indexed: number; status: string }>("/reindex", {
-    method: "POST",
-    body: JSON.stringify({ playbook_id: playbookId }),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -184,12 +199,14 @@ export async function uploadIngest(payload: {
   playbookId: string;
   playbookName: string;
   mode: "hybrid" | "llm" | "heuristic";
+  sourceKind: "playbook_source" | "contract_set";
   files: File[];
 }) {
   const form = new FormData();
   form.append("playbook_id", payload.playbookId);
   form.append("playbook_name", payload.playbookName);
   form.append("mode", payload.mode);
+  form.append("source_kind", payload.sourceKind);
   for (const file of payload.files) {
     form.append("files", file);
   }
@@ -214,6 +231,31 @@ export async function publishIngest(playbookId: string, ingestId: string) {
     `/ingest/${encodeURIComponent(playbookId)}/${encodeURIComponent(ingestId)}/publish`,
     { method: "POST" },
   );
+}
+
+export async function transcribeVoice(audio: Blob) {
+  const form = new FormData();
+  form.append("audio", audio, `recording.${audioExtension(audio.type)}`);
+  return requestForm<VoiceTranscriptionResponse>("/voice/transcribe", form);
+}
+
+export async function speakVoice(text: string) {
+  return requestBlob("/voice/speak", {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+}
+
+export async function warmupVoiceModel() {
+  return request<{ status: string }>("/voice/warmup", { method: "POST" });
+}
+
+function audioExtension(contentType: string) {
+  if (contentType.includes("wav")) return "wav";
+  if (contentType.includes("mpeg") || contentType.includes("mp3")) return "mp3";
+  if (contentType.includes("mp4") || contentType.includes("m4a")) return "m4a";
+  if (contentType.includes("ogg")) return "ogg";
+  return "webm";
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -243,6 +285,22 @@ async function requestForm<T>(path: string, body: FormData): Promise<T> {
     throw new Error(detail || `${response.status} ${response.statusText}`);
   }
   return response.json() as Promise<T>;
+}
+
+async function requestBlob(path: string, init: RequestInit = {}): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...init.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const detail = await readError(response);
+    throw new Error(detail || `${response.status} ${response.statusText}`);
+  }
+  return response.blob();
 }
 
 async function readError(response: Response) {

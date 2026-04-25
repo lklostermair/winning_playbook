@@ -1,0 +1,23 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "ip-rights-know-how",
+  "topic": "IP Rights / Know-How",
+  "standard_position": "No license/rights granted or implied",
+  "fallback_positions": [
+    "No license granted, with an acknowledgment that any jointly created IP during the NDA period will be addressed in a separate agreement to be negotiated in good faith",
+    "No license granted; each party retains ownership of its pre-existing IP; joint inventions to be jointly owned with each party free to exploit independently"
+  ],
+  "red_line": "Any clause that transfers IP ownership, grants an irrevocable license, or assigns rights to inventions or know-how arising from the information exchange",
+  "decision_logic": null,
+  "escalation_logic": "Any IP assignment, license grant, or joint ownership clause",
+  "rationale": "Prevents unintended transfer of IP ownership or license grants",
+  "negotiation_tips": [],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Sheet: Sample NDA Playbook, Clause # 9"
+    }
+  ]
+}

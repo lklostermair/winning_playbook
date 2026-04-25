@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from app.schemas.ingest import IngestDraftDetail, IngestDraftSummary
+from app.schemas.ingest import IngestDraftDetail, IngestDraftSummary, IngestSourceKind
 from app.schemas.playbook import PlaybookSummary, RuleTemplate
 from app.services.playbook_extraction_service import ExtractionMode, PlaybookExtractionService
 from app.services.vault_service import VaultService
@@ -31,6 +31,7 @@ class IngestService:
         source_paths: list[Path],
         mode: ExtractionMode,
         extractor: PlaybookExtractionService,
+        source_kind: IngestSourceKind = "playbook_source",
     ) -> IngestDraftDetail:
         if not source_paths:
             raise IngestError("At least one source file is required.")
@@ -62,6 +63,7 @@ class IngestService:
                 "rule_count": len(rules),
                 "created_at": created_at.isoformat(),
                 "mode": mode,
+                "source_kind": source_kind,
             },
         )
         rules_dir = draft_dir / "rules"
@@ -95,10 +97,12 @@ class IngestService:
 
     def publish_draft(self, playbook_id: str, ingest_id: str) -> int:
         draft = self.get_draft(playbook_id, ingest_id)
+        manifest_path = self.draft_dir(playbook_id, ingest_id) / "manifest.json"
+        manifest = self._read_json(manifest_path)
         self.vault_service.write_playbook_manifest(
             PlaybookSummary(
                 playbook_id=playbook_id,
-                name=f"{playbook_id.upper()} Playbook",
+                name=str(manifest.get("playbook_name") or f"{playbook_id.upper()} Playbook"),
                 description=f"Published from ingest draft {ingest_id}.",
             )
         )
@@ -106,8 +110,6 @@ class IngestService:
         for rule in draft.rules:
             rule.status = "approved"
             self.vault_service.write_rule(rule)
-        manifest_path = self.draft_dir(playbook_id, ingest_id) / "manifest.json"
-        manifest = self._read_json(manifest_path)
         manifest["status"] = "published"
         self._write_json(manifest_path, manifest)
         return len(draft.rules)
@@ -127,6 +129,7 @@ class IngestService:
             source_filenames=list(manifest["source_filenames"]),
             rule_count=int(manifest["rule_count"]),
             created_at=datetime.fromisoformat(manifest["created_at"]),
+            source_kind=manifest.get("source_kind", "playbook_source"),
         )
 
     @staticmethod

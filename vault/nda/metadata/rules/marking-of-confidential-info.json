@@ -1,0 +1,23 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "marking-of-confidential-info",
+  "topic": "Marking of Confidential Info",
+  "standard_position": "Must be marked \"Confidential\"",
+  "fallback_positions": [
+    "Information is confidential if marked OR if its confidential nature would be evident to a reasonable person",
+    "All information is deemed confidential, but with a practical mechanism for the disclosing party to designate specific items as non-confidential"
+  ],
+  "red_line": "Definition that treats all information as confidential with no marking mechanism and no reasonable-person standard",
+  "decision_logic": null,
+  "escalation_logic": "Counterparty insists that all information is confidential with no exceptions or marking process",
+  "rationale": "Controls scope of what's protected and compliance burden",
+  "negotiation_tips": [],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Sheet: Sample NDA Playbook, Clause # 2"
+    }
+  ]
+}

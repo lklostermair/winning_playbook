@@ -1,0 +1,23 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "return-destruction-of-backups",
+  "topic": "Return/Destruction of Backups",
+  "standard_position": "Return/destroy on request with exemptions for: (a) routine IT backup, (b) copies required to be retained under law",
+  "fallback_positions": [
+    "Return/destroy on request with exemptions for copies required to be retained under law only",
+    "Return/destroy on request with certification, but with reasonable timeframe (e.g., 60 days) to comply"
+  ],
+  "red_line": "Immediate destruction of all copies with no exemptions",
+  "decision_logic": null,
+  "escalation_logic": "Counterparty insists on destruction of all copies including backups with written certification",
+  "rationale": "Prevents technically/legally impossible compliance obligations",
+  "negotiation_tips": [],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Sheet: Sample NDA Playbook, Clause # 5"
+    }
+  ]
+}

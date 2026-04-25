@@ -1,0 +1,23 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "signatures-authority",
+  "topic": "Signatures / Authority",
+  "standard_position": "Duly authorized representatives",
+  "fallback_positions": [
+    "Electronic signatures via established e-signature platforms where counterparty confirms signatory's authority in writing",
+    "Single signatory from the counterparty if they provide evidence of signing authority (e.g., power of attorney, board resolution)"
+  ],
+  "red_line": "Counterparty's signatory authority cannot be verified",
+  "decision_logic": null,
+  "escalation_logic": "Any doubt about the counterparty's signatory authority",
+  "rationale": "Ensures NDA is legally binding and enforceable",
+  "negotiation_tips": [],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Sheet: Sample NDA Playbook, Clause # 14"
+    }
+  ]
+}

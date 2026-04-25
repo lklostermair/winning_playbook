@@ -1,0 +1,23 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "contract-term-confidentiality-period",
+  "topic": "Contract Term / Confidentiality Period",
+  "standard_position": "NDA term: 2–3 years. Confidentiality: 5 years from each disclosure, surviving termination",
+  "fallback_positions": [
+    "Confidentiality period 3–7 years from disclosure",
+    "Confidentiality = NDA term + fixed survival (e.g., 3 years post-termination)"
+  ],
+  "red_line": "Perpetual/indefinite confidentiality",
+  "decision_logic": null,
+  "escalation_logic": "Counterparty insists on perpetual confidentiality or a confidentiality period shorter than 3 years",
+  "rationale": "Ensures manageable, defined obligations",
+  "negotiation_tips": [],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Sheet: Sample NDA Playbook, Clause # 11"
+    }
+  ]
+}

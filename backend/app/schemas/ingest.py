@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.schemas.playbook import RuleTemplate
 
 IngestStatus = Literal["draft", "published"]
+IngestSourceKind = Literal["playbook_source", "contract_set"]
 
 
 class IngestDraftSummary(BaseModel):
@@ -15,6 +16,7 @@ class IngestDraftSummary(BaseModel):
     source_filenames: list[str]
     rule_count: int
     created_at: datetime
+    source_kind: IngestSourceKind = "playbook_source"
 
 
 class IngestDraftDetail(IngestDraftSummary):

@@ -1,26 +1,26 @@
-# Type of NDA (Unilateral vs. Bilateral)
+# Type of NDA
 
 ## Standard Position
-Bilateral (mutual) NDA — both parties' information is equally protected
+Bilateral (mutual) NDA
 
 ## Fallback Position
-- If the counterparty insists on a unilateral NDA, propose converting it to bilateral by mirroring the obligations
+- Convert unilateral to bilateral by mirroring obligations
 - Accept a unilateral NDA only if our organization is the sole disclosing party (i.e., you are the beneficiary)
 
 ## Red Line
-Never accept a unilateral NDA where our organization is the receiving party only, unless no confidential information will flow from our side under any circumstances
+Unilateral NDA where you are recieving party only
 
 ## Decision Logic
 _Not specified._
 
 ## Escalation Logic
-If the counterparty refuses to make the NDA bilateral and our organization will be sharing information, escalate to senior legal.
+Counterparty refuses bilateral and you will share info
 
 ## Rationale
-An NDA can be either unilateral (protecting only one party's information) or bilateral/mutual (protecting both parties' information). The type of NDA determines whether our organization's information is protected when shared during discussions.
+Determines if our info is protected
 
 ## Negotiation Tips
-- Counterparties sometimes present a unilateral NDA that protects only their information. This means any information you share during discussions — even incidentally — has no contractual protection. Unilateral NDAs also tend to contain more aggressive provisions (penalties, IP claims) because they are drafted entirely from the disclosing party's perspective.
+_Not specified._
 
 ## Suggested Language
 _Not specified._
@@ -30,4 +30,4 @@ _Not specified._
 - Rule ID: type-of-nda
 - Status: approved
 - Source Documents:
-  - data/examples/Sample NDA Playbook.docx (Clause 1)
+  - vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx (Sheet: Sample NDA Playbook, Clause # 1)

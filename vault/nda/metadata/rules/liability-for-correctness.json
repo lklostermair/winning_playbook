@@ -1,0 +1,23 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "liability-for-correctness",
+  "topic": "Liability for Correctness",
+  "standard_position": "\"AS IS\" — no warranty, no liability for use/reliance",
+  "fallback_positions": [
+    "No warranty",
+    "Limited warranty"
+  ],
+  "red_line": "Full warranty",
+  "decision_logic": null,
+  "escalation_logic": "Counterparty insists on accuracy warranties backed by indemnification",
+  "rationale": "Prevents inappropriate warranty exposure at NDA stage",
+  "negotiation_tips": [],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Sheet: Sample NDA Playbook, Clause # 6"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "other-liabilities-indemnification",
+  "topic": "Other Liabilities / Indemnification",
+  "standard_position": "No indemnification clause",
+  "fallback_positions": [
+    "Reasonable limitation of liability (e.g., exemption for slight negligence) that applies equally to both parties",
+    "Indemnification clause limited to direct damages only, with a reasonable cap, and excluding consequential, indirect, special, and punitive damages"
+  ],
+  "red_line": "One-sided indemnification, any inclusion of punitive or consequential damages, or any indemnity that extends to third-party claims unrelated to the NDA",
+  "decision_logic": null,
+  "escalation_logic": "Any indemnification clause or liability provision that goes beyond standard statutory liability",
+  "rationale": "Controls financial exposure framework",
+  "negotiation_tips": [],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Sheet: Sample NDA Playbook, Clause # 8"
+    }
+  ]
+}

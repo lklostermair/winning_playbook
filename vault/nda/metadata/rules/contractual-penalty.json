@@ -1,0 +1,23 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "contractual-penalty",
+  "topic": "Contractual Penalty",
+  "standard_position": "No penalty clause",
+  "fallback_positions": [
+    "Penalty clause only if: (a) the burden of proof for the breach remains with the disclosing party, (b) the penalty amount is commercially reasonable and proportionate, and (c) the penalty is the sole monetary remedy",
+    "Penalty clause with a cap that is proportionate to the value of the engagement, and only for willful or grossly negligent breaches"
+  ],
+  "red_line": "Uncapped penalty, regarless of fault or penalty that is cumulative with unlimited damages",
+  "decision_logic": null,
+  "escalation_logic": "Any contractual penalty clause should be reviewed by senior legal before acceptance",
+  "rationale": "Prevents disproportionate financial exposure for breach",
+  "negotiation_tips": [],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Sheet: Sample NDA Playbook, Clause # 7"
+    }
+  ]
+}

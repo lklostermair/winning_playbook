@@ -22,6 +22,7 @@ from app.schemas.source import SourceDocument
 from app.services.vault_service import VaultService
 
 ExtractionMode = Literal["hybrid", "llm", "heuristic"]
+ExtractionSourceKind = Literal["playbook_source", "contract_set"]
 
 WORDPROCESSINGML_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 SUPPORTED_SUFFIXES = {".xlsx", ".csv", ".docx", ".pdf"}
@@ -49,9 +50,11 @@ class PlaybookExtractionService:
         google_cloud_location: str = "europe-west4",
         gemini_model: str = "gemini-2.5-flash",
         temperature: float = 0.4,
+        source_kind: ExtractionSourceKind = "playbook_source",
     ) -> None:
         self.playbook_id = playbook_id
         self.mode = mode
+        self.source_kind = source_kind
         self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
         self.google_cloud_project = google_cloud_project or os.getenv("GOOGLE_CLOUD_PROJECT")
         self.google_cloud_location = google_cloud_location or os.getenv("GOOGLE_CLOUD_LOCATION", "europe-west4")
@@ -60,11 +63,18 @@ class PlaybookExtractionService:
 
     def extract_rules(self, source_paths: list[Path]) -> list[RuleTemplate]:
         documents = [parse_document(path) for path in source_paths]
+        if self.source_kind == "contract_set" and self.mode == "heuristic":
+            raise PlaybookExtractionError("Generating a playbook from contracts requires LLM or hybrid mode.")
+        if self.source_kind == "contract_set" and not self._can_use_gemini():
+            raise PlaybookExtractionError(
+                "Generating a playbook from contracts requires Gemini. "
+                "Set GOOGLE_CLOUD_PROJECT for Vertex AI ADC, or GEMINI_API_KEY for API-key fallback."
+            )
         if self.mode in ("hybrid", "llm") and self._can_use_gemini():
             try:
                 rules = self._extract_with_gemini(documents)
             except (errors.APIError, GoogleAuthError, PlaybookExtractionError, ValueError) as exc:
-                if self.mode == "llm":
+                if self.mode == "llm" or self.source_kind == "contract_set":
                     raise
                 logger.warning("Gemini extraction failed; falling back to heuristics: %s", exc)
             else:
@@ -85,7 +95,7 @@ class PlaybookExtractionService:
         return rules
 
     def _extract_with_gemini(self, documents: list[ParsedDocument]) -> list[RuleTemplate]:
-        prompt = build_gemini_prompt(documents, self.playbook_id)
+        prompt = build_contract_synthesis_prompt(documents, self.playbook_id) if self.source_kind == "contract_set" else build_gemini_prompt(documents, self.playbook_id)
         client = self._gemini_client()
         response = None
         for attempt in range(4):
@@ -133,10 +143,11 @@ class PlaybookExtractionService:
         seen: dict[str, int] = {}
         deduped: list[RuleTemplate] = []
         for rule in rules:
-            base_id = rule.rule_id or VaultService.slugify_topic(rule.topic)
+            base_id = VaultService.normalize_id(rule.rule_id or rule.topic, fallback=VaultService.slugify_topic(rule.topic))
             count = seen.get(base_id, 0)
             seen[base_id] = count + 1
-            rule.rule_id = base_id if count == 0 else f"{base_id}-{count + 1}"
+            suffix = f"-{count + 1}"
+            rule.rule_id = base_id if count == 0 else f"{base_id[: 81 - len(suffix)].strip('-')}{suffix}"
             deduped.append(rule)
         return deduped
 
@@ -412,6 +423,52 @@ Return only JSON with this shape:
 
 Do not assume a fixed number of rules. Infer the rules from headings, tables, labels,
 and surrounding context. Preserve auditability by filling source_documents.
+
+{document_text}
+""".strip()
+
+
+def build_contract_synthesis_prompt(documents: list[ParsedDocument], playbook_id: str) -> str:
+    document_text = "\n\n".join(
+        f"CONTRACT SOURCE: {display_path(document.path)}\n{document.text[:25000]}" for document in documents
+    )
+    return f"""
+Generate a practical legal playbook from a set of existing contracts.
+
+You are not extracting a one-to-one list of clauses. Read all contracts together, identify recurring
+legal topics, detect overlaps and contradictions, then consolidate them into a coherent ruleset.
+Each rule should describe the recommended negotiation position inferred from the contract set.
+
+Return only JSON with this shape:
+{{
+  "rules": [
+    {{
+      "playbook_id": "{playbook_id}",
+      "rule_id": "stable-topic-slug",
+      "topic": "Concise rule topic",
+      "standard_position": "Recommended standard position synthesized from the contracts",
+      "fallback_positions": ["Reasonable fallback positions seen or implied across the contracts"],
+      "red_line": "Position that should not be accepted, if the contract set supports one",
+      "decision_logic": "How to decide which position applies",
+      "escalation_logic": "When to escalate for legal or business review",
+      "rationale": "Why this rule fits the contract pattern, including overlap handling",
+      "negotiation_tips": ["Practical watch-outs based on variations across contracts"],
+      "suggested_language": "Optional concise clause language if a reliable pattern exists",
+      "status": "approved",
+      "source_documents": [
+        {{"filename": "source contract path", "location": "clause, heading, page, or section reference"}}
+      ]
+    }}
+  ]
+}}
+
+Rules:
+- Merge overlapping clauses into one topic instead of creating duplicates.
+- Mention meaningful variations in fallback_positions, decision_logic, or negotiation_tips.
+- Do not invent policy beyond what the uploaded contracts reasonably support.
+- Prefer concise natural language over choppy labels.
+- Preserve auditability by citing the source contracts that support each synthesized rule.
+- Do not assume a fixed number of rules.
 
 {document_text}
 """.strip()

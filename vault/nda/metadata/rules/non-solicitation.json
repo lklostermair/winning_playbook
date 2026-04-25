@@ -1,0 +1,23 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "non-solicitation",
+  "topic": "Non-Solicitation",
+  "standard_position": "No non-solicitation clause in NDA",
+  "fallback_positions": [
+    "Limited to: direct solicitation only, involved employees only, NDA term only",
+    "Broader clause but no penalty"
+  ],
+  "red_line": "Any non-solicitation clause that applies to unsolicited applications, covers all employees regardless of involvement, or includes a contractual penalty",
+  "decision_logic": null,
+  "escalation_logic": "Any non-solicitation clause with a penalty",
+  "rationale": "Prevents overbroad employment restrictions",
+  "negotiation_tips": [],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Sheet: Sample NDA Playbook, Clause # 10"
+    }
+  ]
+}
