@@ -10,6 +10,7 @@ CORE_INDEX_SECTIONS = frozenset(
         "Suggested Language",
     }
 )
+TOPIC_SECTION = "Topic"
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,40 @@ def chunk_rule_markdown(
             )
         )
     return chunks
+
+
+def chunk_rule_topic_markdown(
+    playbook_id: str,
+    rule_id: str,
+    source_file: Path,
+    markdown: str,
+) -> list[MarkdownChunk]:
+    topic = rule_id
+    body_lines = []
+    in_metadata = False
+    for line in markdown.splitlines():
+        if line.startswith("# "):
+            topic = line.removeprefix("# ").strip() or rule_id
+        if line.startswith("## Metadata"):
+            in_metadata = True
+            continue
+        if not in_metadata:
+            body_lines.append(line)
+
+    body = "\n".join(body_lines).strip()
+    if not body:
+        return []
+    return [
+        MarkdownChunk(
+            chunk_id=f"{playbook_id}:{rule_id}:topic",
+            playbook_id=playbook_id,
+            rule_id=rule_id,
+            topic=topic,
+            section=TOPIC_SECTION,
+            text=body,
+            source_file=source_file,
+        )
+    ]
 
 
 def slugify_section(section: str) -> str:

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from app.rag.chunking import CORE_INDEX_SECTIONS, MarkdownChunk, chunk_rule_markdown
+from app.rag.chunking import MarkdownChunk, chunk_rule_topic_markdown
 from app.schemas.source import GitMetadata
 from app.services.chroma_store import ChromaStore
 from app.services.embedding_service import GeminiEmbeddingService
@@ -29,13 +29,7 @@ class RetrievalService:
             markdown_path = self.vault_service.rule_markdown_path(playbook_id, rule.rule_id)
             markdown = self.vault_service.read_rule_markdown(playbook_id, rule.rule_id)
             git_metadata = self.git_service.get_last_change_metadata(markdown_path)
-            rule_chunks = chunk_rule_markdown(
-                playbook_id,
-                rule.rule_id,
-                markdown_path,
-                markdown,
-                include_sections=CORE_INDEX_SECTIONS,
-            )
+            rule_chunks = chunk_rule_topic_markdown(playbook_id, rule.rule_id, markdown_path, markdown)
             chunks.extend(rule_chunks)
             metadata.extend(chunk_metadata(chunk, git_metadata) for chunk in rule_chunks)
 

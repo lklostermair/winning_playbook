@@ -9,6 +9,7 @@ from app.services.retrieval_service import RetrievalService
 MIN_RETRIEVAL_SCORE = 0.52
 TOP_K = 5
 ANSWER_SECTION_PRIORITY = {
+    "Topic": 0,
     "Red Line": 0,
     "Escalation Logic": 1,
     "Standard Position": 2,
@@ -92,12 +93,12 @@ def calculate_confidence(hits: list[dict[str, Any]]) -> Confidence:
     top_score = max(float(hit["score"]) for hit in hits)
     section_names = {str(hit["metadata"].get("section", "")) for hit in hits}
     source_count_bonus = min(len(hits), 3) / 3 * 0.15
-    direct_section_bonus = 0.15 if section_names.intersection({"Red Line", "Standard Position"}) else 0.0
+    direct_section_bonus = 0.15 if section_names.intersection({"Topic", "Red Line", "Standard Position"}) else 0.0
     score = min(1.0, top_score * 0.8 + source_count_bonus + direct_section_bonus)
     label = "high" if score >= 0.8 else "medium" if score >= 0.55 else "low"
 
     if label == "high":
-        reason = "Multiple retrieved playbook sections directly support the answer."
+        reason = "The retrieved playbook topic directly supports the answer."
     elif label == "medium":
         reason = "The answer is supported by retrieved playbook sections, but source support is limited."
     else:
@@ -136,7 +137,12 @@ def answer_context_from_hit(index: int, hit: dict[str, Any]) -> AnswerContext:
 
 def snippet_from_document(document: str, max_chars: int = 360) -> str:
     lines = [line.strip() for line in document.splitlines() if line.strip()]
-    snippet = " ".join(lines[2:] if len(lines) > 2 else lines)
+    snippet_lines = [
+        line
+        for line in lines
+        if not line.startswith("#") and not line.startswith("##") and line != "_Not specified._"
+    ]
+    snippet = " ".join(snippet_lines)
     if len(snippet) <= max_chars:
         return snippet
     return snippet[: max_chars - 3].rstrip() + "..."

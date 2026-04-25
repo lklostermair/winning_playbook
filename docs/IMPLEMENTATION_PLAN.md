@@ -55,7 +55,7 @@ The mission is to make the playbook itself come alive. Contracts can provide evi
 | WP6 Ask Playbook | Done | Retrieval-grounded Gemini answer flow, confidence heuristic, sources, and low-evidence refusal. |
 | WP7 Proposed Update Workflow | Done | Proposed updates are persisted, approve applies vault changes, commits affected files, and reindexes. |
 | WP8 Frontend Integration | Done | Existing Lovable/TanStack app simplified and bound to live backend contracts. |
-| WP9 Ingestion MVP | Partially covered | Adaptive extraction exists; upload/ingest API workflow still pending. |
+| WP9 Ingestion MVP | Done | Upload API creates reviewable ingest drafts; frontend can upload, list drafts, and publish to vault/reindex. |
 | WP10 Demo Hardening | Pending | Reset, env validation, predictable demo script, polish. |
 
 ## Decision Defaults
@@ -330,6 +330,8 @@ Current critical path before WP5:
 
 ### WP9: Ingestion MVP
 
+**Status:** Complete
+
 **Owner lane:** Backend/RAG
 
 **Scope**
@@ -345,6 +347,13 @@ Current critical path before WP5:
 - Parser/model extraction failures do not block the core demo.
 - Any unsupported input returns a useful error.
 - The importer produces reviewable draft rules before they become approved guidance.
+
+**Implemented**
+
+- `POST /ingest` accepts DOCX/PDF/XLSX/CSV uploads and creates draft rules under `vault/{playbook_id}/draft_ingest/{ingest_id}`.
+- `GET /ingest` and `GET /ingest/{playbook_id}/{ingest_id}` expose draft summaries/details for review.
+- `POST /ingest/{playbook_id}/{ingest_id}/publish` publishes draft rules to the official vault and reindexes.
+- Frontend upload dialog can create drafts, show draft rule counts/source files, and publish draft ingests.
 
 ### WP10: Demo Hardening
 

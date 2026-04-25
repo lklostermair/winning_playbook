@@ -10,7 +10,6 @@ import {
   MessageCircle,
   Moon,
   RefreshCw,
-  Search,
   Send,
   ShieldCheck,
   Sun,
@@ -24,13 +23,17 @@ import {
   approveUpdate,
   createUpdate,
   getHealth,
+  getIngests,
   getPlaybooks,
   getRule,
   getRules,
   getUpdates,
   reindexPlaybook,
   rejectUpdate,
+  publishIngest,
+  uploadIngest,
   type AskResponse,
+  type IngestDraftSummary,
   type PlaybookSummary,
   type ProposedUpdate,
   type RuleDetail,
@@ -92,6 +95,7 @@ function LivingPlaybookApp() {
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
   const [selectedRule, setSelectedRule] = useState<RuleDetail | null>(null);
   const [updates, setUpdates] = useState<ProposedUpdate[]>([]);
+  const [ingests, setIngests] = useState<IngestDraftSummary[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -109,23 +113,22 @@ function LivingPlaybookApp() {
         setApiStatus("checking");
         await getHealth();
         setApiStatus("ok");
-        const [playbookList, ruleList, updateList] = await Promise.all([
+        const [playbookList, ruleList, updateList, ingestList] = await Promise.all([
           getPlaybooks(),
           getRules(playbookId),
           getUpdates(playbookId),
+          getIngests(playbookId),
         ]);
         setPlaybooks(playbookList);
         setRules(ruleList);
         setUpdates(updateList);
-        if (!selectedRuleId && ruleList[0]) {
-          setSelectedRuleId(ruleList[0].rule_id);
-        }
+        setIngests(ingestList);
       } catch (error) {
         setApiStatus("down");
         toast.error(error instanceof Error ? error.message : "Backend is not reachable.");
       }
     },
-    [selectedPlaybookId, selectedRuleId],
+    [selectedPlaybookId],
   );
 
   useEffect(() => {
@@ -147,6 +150,7 @@ function LivingPlaybookApp() {
   );
   const latestGit = useMemo(() => latestGitMetadata(rules), [rules]);
   const pendingUpdates = updates.filter((update) => update.status === "pending");
+  const citedRuleIds = useMemo(() => latestCitedRuleIds(messages), [messages]);
 
   async function submitQuestion(question = input) {
     const trimmed = question.trim();
@@ -162,9 +166,6 @@ function LivingPlaybookApp() {
         ...current,
         { id: Date.now() + 1, role: "ai", text: answer.answer, answer },
       ]);
-      const firstSource = answer.sources[0];
-      const matchingRule = firstSource ? ruleIdFromPath(firstSource.file) : null;
-      if (matchingRule) setSelectedRuleId(matchingRule);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Ask failed.");
     } finally {
@@ -228,6 +229,16 @@ function LivingPlaybookApp() {
     }
   }
 
+  async function publishDraft(ingest: IngestDraftSummary) {
+    try {
+      const result = await publishIngest(ingest.playbook_id, ingest.ingest_id);
+      await refreshAll(ingest.playbook_id);
+      toast.success(`Published ${result.rules_published} rules and reindexed.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Publish failed.");
+    }
+  }
+
   return (
     <main className={`${isDarkMode ? "dark" : ""} min-h-screen bg-background text-foreground`}>
       <div className="flex h-screen overflow-hidden">
@@ -256,7 +267,13 @@ function LivingPlaybookApp() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedPlaybookId} onValueChange={setSelectedPlaybookId}>
+            <Select
+              value={selectedPlaybookId}
+              onValueChange={(playbookId) => {
+                setSelectedPlaybookId(playbookId);
+                setSelectedRuleId(null);
+              }}
+            >
               <SelectTrigger className="h-10 rounded-lg border-sidebar-border bg-sidebar-panel text-sidebar-primary">
                 <SelectValue placeholder="Select playbook" />
               </SelectTrigger>
@@ -291,27 +308,18 @@ function LivingPlaybookApp() {
 
           <div className="mt-7 min-h-0 flex-1">
             <div className="mb-3 flex items-center justify-between text-[11px] uppercase tracking-[0.08em] text-sidebar-label">
-              <span>Rules</span>
-              <Search className="h-4 w-4" />
+              <span>Referenced Topics</span>
+              <MessageCircle className="h-4 w-4" />
             </div>
-            <div className="space-y-1.5 overflow-y-auto pr-1">
-              {rules.map((rule) => (
-                <button
-                  key={rule.rule_id}
-                  onClick={() => setSelectedRuleId(rule.rule_id)}
-                  className={`flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left ${
-                    selectedRuleId === rule.rule_id
-                      ? "bg-active-item text-sidebar-primary"
-                      : "text-sidebar-foreground hover:bg-sidebar-panel"
-                  }`}
-                >
-                  <FileText className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span className="min-w-0">
-                    <span className="block truncate">{rule.topic}</span>
-                    <span className="block text-xs text-sidebar-label">{rule.status}</span>
-                  </span>
-                </button>
-              ))}
+            <div className="rounded-lg border border-sidebar-border bg-sidebar-panel p-3 text-sm leading-6 text-sidebar-foreground">
+              Ask a question and the assistant will pull the relevant playbook topic into the
+              answer.
+              {selectedRule && (
+                <div className="mt-3 rounded-md bg-active-item px-3 py-2 text-sidebar-primary">
+                  <div className="text-xs text-sidebar-label">Current source</div>
+                  <div className="truncate">{selectedRule.rule.topic}</div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -362,8 +370,15 @@ function LivingPlaybookApp() {
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-48 pt-5 text-[14px] leading-[1.6] text-body-text">
             <VaultGraph
+              playbooks={playbooks}
+              selectedPlaybookId={selectedPlaybookId}
               rules={rules}
               selectedRuleId={selectedRuleId}
+              citedRuleIds={citedRuleIds}
+              onSelectPlaybook={(playbookId) => {
+                setSelectedPlaybookId(playbookId);
+                setSelectedRuleId(null);
+              }}
               onSelectRule={setSelectedRuleId}
             />
 
@@ -480,7 +495,19 @@ function LivingPlaybookApp() {
           void submitProposedUpdate();
         }}
       />
-      <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+      <UploadDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        playbookId={selectedPlaybookId}
+        playbookName={selectedPlaybook?.name ?? "NDA Playbook"}
+        drafts={ingests}
+        onUploaded={(draft) => {
+          setSelectedPlaybookId(draft.playbook_id);
+          setSelectedRuleId(null);
+          void refreshAll(draft.playbook_id);
+        }}
+        onPublish={(draft) => void publishDraft(draft)}
+      />
     </main>
   );
 }
@@ -500,24 +527,81 @@ function StatusRow({ label, value, good }: { label: string; value: string; good:
 }
 
 function VaultGraph({
+  playbooks,
+  selectedPlaybookId,
   rules,
   selectedRuleId,
+  citedRuleIds,
+  onSelectPlaybook,
   onSelectRule,
 }: {
+  playbooks: PlaybookSummary[];
+  selectedPlaybookId: string;
   rules: RuleSummary[];
   selectedRuleId: string | null;
+  citedRuleIds: Set<string>;
+  onSelectPlaybook: (playbookId: string) => void;
   onSelectRule: (ruleId: string) => void;
 }) {
-  const visibleRules = rules.slice(0, 10);
-  const center = { x: 380, y: 115 };
-  const nodes = visibleRules.map((rule, index) => {
+  const [hoveredGraphNode, setHoveredGraphNode] = useState<{
+    label: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [graphReady, setGraphReady] = useState(false);
+  const [graphSettled, setGraphSettled] = useState(false);
+  const vault = { x: 380, y: 125 };
+  const playbookRadius = 120;
+  const playbookNodes = playbooks.map((playbook, index) => ({
+    playbook,
+    x: vault.x + Math.cos((Math.PI * 2 * index) / Math.max(playbooks.length, 1)) * playbookRadius,
+    y: vault.y + Math.sin((Math.PI * 2 * index) / Math.max(playbooks.length, 1)) * 62,
+  }));
+  const selectedPlaybookNode = playbookNodes.find(
+    (node) => node.playbook.playbook_id === selectedPlaybookId,
+  ) ??
+    playbookNodes[0] ?? {
+      playbook: { playbook_id: selectedPlaybookId, name: selectedPlaybookId },
+      x: vault.x + playbookRadius,
+      y: vault.y,
+    };
+  const highlightedRuleIds = new Set(citedRuleIds);
+  if (selectedRuleId) highlightedRuleIds.add(selectedRuleId);
+  const visibleRules = [
+    ...rules.filter((rule) => highlightedRuleIds.has(rule.rule_id)),
+    ...rules.filter((rule) => !highlightedRuleIds.has(rule.rule_id)),
+  ].slice(0, 8);
+  const topicCenter = {
+    x: selectedPlaybookNode.x + (selectedPlaybookNode.x >= vault.x ? 112 : -112),
+    y: selectedPlaybookNode.y,
+  };
+  const topicNodes = visibleRules.map((rule, index) => {
     const angle = (Math.PI * 2 * index) / Math.max(visibleRules.length, 1) - Math.PI / 2;
     return {
       rule,
-      x: center.x + Math.cos(angle) * 245,
-      y: center.y + Math.sin(angle) * 82,
+      x: topicCenter.x + Math.cos(angle) * 96,
+      y: topicCenter.y + Math.sin(angle) * 58,
     };
   });
+  const hasCitedTopic = topicNodes.some((node) => citedRuleIds.has(node.rule.rule_id));
+  const hasHighlightedTopic = topicNodes.some((node) => highlightedRuleIds.has(node.rule.rule_id));
+  const graphSignature = `${selectedPlaybookId}:${playbookNodes.map((node) => node.playbook.playbook_id).join(",")}:${visibleRules.map((rule) => rule.rule_id).join(",")}`;
+
+  useEffect(() => {
+    setGraphReady(false);
+    setGraphSettled(false);
+    let nextFrame = 0;
+    const frame = requestAnimationFrame(() => {
+      nextFrame = requestAnimationFrame(() => setGraphReady(true));
+    });
+    const settledTimer = window.setTimeout(() => setGraphSettled(true), 1200);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      cancelAnimationFrame(nextFrame);
+      window.clearTimeout(settledTimer);
+    };
+  }, [graphSignature]);
 
   return (
     <section className="mx-auto h-[30vh] min-h-[220px] w-full max-w-5xl border-b border-border pb-4">
@@ -528,67 +612,179 @@ function VaultGraph({
           aria-label="Playbook vault graph"
           className="h-full w-full"
         >
-          {nodes.map((node) => (
-            <line
-              key={`link-${node.rule.rule_id}`}
-              x1={center.x}
-              y1={center.y}
-              x2={node.x}
-              y2={node.y}
-              className="stroke-graph-link"
-              strokeWidth={selectedRuleId === node.rule.rule_id ? 1.8 : 1.1}
-            />
-          ))}
-          <circle cx={center.x} cy={center.y} r={14} className="fill-graph-root" />
-          <text
-            x={center.x}
-            y={center.y + 32}
-            textAnchor="middle"
-            className="select-none fill-muted-foreground text-[10px]"
+          {playbookNodes.map((node, index) => {
+            const selectedBranch =
+              selectedPlaybookId === node.playbook.playbook_id && hasHighlightedTopic;
+            const lineLength = Math.hypot(node.x - vault.x, node.y - vault.y);
+
+            return (
+              <line
+                key={`playbook-link-${node.playbook.playbook_id}`}
+                x1={vault.x}
+                y1={vault.y}
+                x2={node.x}
+                y2={node.y}
+                className={`${selectedBranch ? "stroke-graph-selected" : "stroke-graph-link"} transition-[opacity,stroke-dashoffset,stroke-width] duration-700 ease-out`}
+                opacity={graphReady ? (selectedBranch ? 1 : 0.62) : 0}
+                strokeWidth={
+                  selectedBranch ? 5 : selectedPlaybookId === node.playbook.playbook_id ? 1.8 : 1.1
+                }
+                strokeLinecap="round"
+                strokeDasharray={lineLength}
+                strokeDashoffset={graphReady ? 0 : lineLength}
+                style={{ transitionDelay: graphSettled ? "0ms" : `${120 + index * 70}ms` }}
+              />
+            );
+          })}
+          {topicNodes.map((node, index) => {
+            const highlighted = highlightedRuleIds.has(node.rule.rule_id);
+            const lineLength = Math.hypot(
+              node.x - selectedPlaybookNode.x,
+              node.y - selectedPlaybookNode.y,
+            );
+
+            return (
+              <line
+                key={`topic-link-${node.rule.rule_id}`}
+                x1={selectedPlaybookNode.x}
+                y1={selectedPlaybookNode.y}
+                x2={node.x}
+                y2={node.y}
+                className={`${highlighted ? "stroke-graph-selected" : "stroke-graph-link"} transition-[opacity,stroke-dashoffset,stroke-width] duration-700 ease-out`}
+                opacity={graphReady ? (highlighted ? 1 : 0.62) : 0}
+                strokeWidth={highlighted ? 5 : selectedRuleId === node.rule.rule_id ? 1.8 : 1.1}
+                strokeLinecap="round"
+                strokeDasharray={lineLength}
+                strokeDashoffset={graphReady ? 0 : lineLength}
+                style={{ transitionDelay: graphSettled ? "0ms" : `${260 + index * 55}ms` }}
+              />
+            );
+          })}
+          <g
+            className={`transition-all duration-500 ease-out [transform-box:fill-box] [transform-origin:center] ${
+              graphReady ? "scale-100 opacity-100" : "scale-50 opacity-0"
+            }`}
           >
-            NDA Vault
-          </text>
-          {nodes.map((node) => {
+            <title>Vault</title>
+            <circle
+              cx={vault.x}
+              cy={vault.y}
+              r={hasHighlightedTopic ? 25 : 20}
+              className="fill-graph-selected/10"
+            />
+            <circle cx={vault.x} cy={vault.y} r={15} className="fill-graph-root" />
+          </g>
+          {playbookNodes.map((node, index) => {
+            const selected = selectedPlaybookId === node.playbook.playbook_id;
+            return (
+              <g
+                key={node.playbook.playbook_id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelectPlaybook(node.playbook.playbook_id)}
+                onMouseEnter={() =>
+                  setHoveredGraphNode({ label: node.playbook.name, x: node.x, y: node.y })
+                }
+                onMouseLeave={() => setHoveredGraphNode(null)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    onSelectPlaybook(node.playbook.playbook_id);
+                  }
+                }}
+                className={`cursor-pointer outline-none transition-all duration-500 ease-out [transform-box:fill-box] [transform-origin:center] hover:scale-125 ${
+                  graphReady ? "scale-100 opacity-100" : "scale-50 opacity-0"
+                }`}
+                style={{ transitionDelay: graphSettled ? "0ms" : `${180 + index * 70}ms` }}
+              >
+                <title>{node.playbook.name}</title>
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={selected ? 24 : 20}
+                  className="fill-graph-selected/0 transition-colors duration-200 hover:fill-graph-selected/10"
+                />
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={selected ? 18 : 14}
+                  className={selected ? "fill-graph-selected/10" : "fill-transparent"}
+                />
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={selected ? 10 : 8}
+                  className={selected ? "fill-graph-selected" : "fill-graph-folder"}
+                />
+              </g>
+            );
+          })}
+          {topicNodes.map((node, index) => {
             const selected = selectedRuleId === node.rule.rule_id;
+            const cited = citedRuleIds.has(node.rule.rule_id);
             return (
               <g
                 key={node.rule.rule_id}
                 role="button"
                 tabIndex={0}
                 onClick={() => onSelectRule(node.rule.rule_id)}
+                onMouseEnter={() =>
+                  setHoveredGraphNode({ label: node.rule.topic, x: node.x, y: node.y })
+                }
+                onMouseLeave={() => setHoveredGraphNode(null)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") onSelectRule(node.rule.rule_id);
                 }}
-                className="cursor-pointer outline-none"
+                className={`cursor-pointer outline-none transition-all duration-500 ease-out [transform-box:fill-box] [transform-origin:center] hover:scale-125 ${
+                  graphReady ? "scale-100 opacity-100" : "scale-50 opacity-0"
+                }`}
+                style={{ transitionDelay: graphSettled ? "0ms" : `${360 + index * 55}ms` }}
               >
+                <title>{node.rule.topic}</title>
                 <circle
                   cx={node.x}
                   cy={node.y}
-                  r={selected ? 16 : 12}
-                  className={selected ? "fill-graph-selected/10" : "fill-transparent"}
+                  r={cited ? 22 : selected ? 20 : 16}
+                  className="fill-graph-selected/0 transition-colors duration-200 hover:fill-graph-selected/10"
                 />
                 <circle
                   cx={node.x}
                   cy={node.y}
-                  r={selected ? 8 : 6}
-                  className={selected ? "fill-graph-selected" : "fill-graph-file"}
+                  r={cited ? 18 : selected ? 16 : 12}
+                  className={cited || selected ? "fill-graph-selected/10" : "fill-transparent"}
                 />
-                <text
-                  x={node.x}
-                  y={node.y + 20}
-                  textAnchor="middle"
-                  className="select-none fill-muted-foreground text-[9px]"
-                >
-                  {truncate(node.rule.topic, 18)}
-                </text>
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={cited ? 9 : selected ? 8 : 6}
+                  className={cited || selected ? "fill-graph-selected" : "fill-graph-file"}
+                />
               </g>
             );
           })}
         </svg>
         <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-input bg-background/80 px-3 py-1.5 text-[12px] text-muted-foreground backdrop-blur">
           <Folder className="h-3.5 w-3.5" />
-          <span>{rules.length} rule files</span>
+          <span>
+            {playbooks.length || 1} playbook{playbooks.length === 1 ? "" : "s"} · {rules.length}{" "}
+            topics
+          </span>
         </div>
+        {hasCitedTopic && (
+          <div className="absolute right-4 top-4 rounded-full border border-graph-selected/30 bg-background/80 px-3 py-1.5 text-[12px] text-graph-selected backdrop-blur">
+            Cited branch
+          </div>
+        )}
+        {hoveredGraphNode && (
+          <div
+            className="pointer-events-none absolute z-10 max-w-52 -translate-x-1/2 -translate-y-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground shadow-sm"
+            style={{
+              left: `${(hoveredGraphNode.x / 760) * 100}%`,
+              top: `${(hoveredGraphNode.y / 250) * 100}%`,
+            }}
+          >
+            {hoveredGraphNode.label}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -622,7 +818,10 @@ function AnswerMessage({
             {answer.sources.map((source) => (
               <button
                 key={`${source.file}-${source.section}`}
-                onClick={() => onSelectRule(ruleIdFromPath(source.file) ?? "")}
+                onClick={() => {
+                  const ruleId = ruleIdFromPath(source.file);
+                  if (ruleId) onSelectRule(ruleId);
+                }}
                 className="rounded-lg border bg-panel-card p-3 text-left hover:bg-muted"
               >
                 <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -861,26 +1060,144 @@ function FeedbackDialog({
 function UploadDialog({
   open,
   onOpenChange,
+  playbookId,
+  playbookName,
+  drafts,
+  onUploaded,
+  onPublish,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  playbookId: string;
+  playbookName: string;
+  drafts: IngestDraftSummary[];
+  onUploaded: (draft: IngestDraftSummary) => void;
+  onPublish: (draft: IngestDraftSummary) => void;
 }) {
+  const [files, setFiles] = useState<File[]>([]);
+  const [mode, setMode] = useState<"hybrid" | "llm" | "heuristic">("hybrid");
+  const [targetPlaybookId, setTargetPlaybookId] = useState(playbookId);
+  const [targetPlaybookName, setTargetPlaybookName] = useState(playbookName);
+  const [uploading, setUploading] = useState(false);
+
+  async function upload() {
+    if (!targetPlaybookId.trim() || !targetPlaybookName.trim()) {
+      toast.error("Provide a playbook id and name.");
+      return;
+    }
+    if (files.length === 0) {
+      toast.error("Select at least one playbook file.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const draft = await uploadIngest({
+        playbookId: targetPlaybookId.trim(),
+        playbookName: targetPlaybookName.trim(),
+        mode,
+        files,
+      });
+      setFiles([]);
+      onUploaded(draft);
+      toast.success(`Created draft with ${draft.rule_count} rules.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-lg border bg-background shadow-sm sm:max-w-lg">
+      <DialogContent className="rounded-lg border bg-background shadow-sm sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Upload Playbook</DialogTitle>
           <DialogDescription>
-            Ingestion UI is reserved for WP9. Use the seed script for now.
+            Extract DOCX, PDF, XLSX, or CSV sources into a reviewable draft before publishing.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-dashed bg-panel-card p-8 text-center">
+        <div className="rounded-lg border border-dashed bg-panel-card p-6 text-center">
           <UploadCloud className="h-10 w-10 text-muted-foreground" />
-          <p className="mt-4 text-sm font-medium text-foreground">DOCX, PDF, XLSX, or CSV</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Backend ingestion endpoint comes next.
-          </p>
+          <p className="mt-3 text-sm font-medium text-foreground">DOCX, PDF, XLSX, or CSV</p>
+          <div className="mt-4 grid gap-3 text-left sm:grid-cols-2">
+            <label className="text-xs text-muted-foreground">
+              Playbook ID
+              <input
+                value={targetPlaybookId}
+                onChange={(event) => setTargetPlaybookId(slugInput(event.target.value))}
+                className="mt-1 h-9 w-full rounded-lg border bg-background px-3 text-sm text-foreground outline-none focus:border-sidebar-label"
+                placeholder="nda"
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Playbook Name
+              <input
+                value={targetPlaybookName}
+                onChange={(event) => setTargetPlaybookName(event.target.value)}
+                className="mt-1 h-9 w-full rounded-lg border bg-background px-3 text-sm text-foreground outline-none focus:border-sidebar-label"
+                placeholder="NDA Playbook"
+              />
+            </label>
+          </div>
+          <input
+            type="file"
+            multiple
+            accept=".docx,.pdf,.xlsx,.csv"
+            onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
+            className="mt-4 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+          />
+          <div className="mt-3 flex items-center justify-center gap-3">
+            <Select value={mode} onValueChange={(value) => setMode(value as typeof mode)}>
+              <SelectTrigger className="h-9 w-36 rounded-lg bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
+                <SelectItem value="llm">LLM</SelectItem>
+                <SelectItem value="heuristic">Heuristic</SelectItem>
+              </SelectContent>
+            </Select>
+            <button
+              onClick={() => void upload()}
+              disabled={uploading}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {uploading ? "Extracting..." : "Create Draft"}
+            </button>
+          </div>
         </div>
+        <section className="rounded-lg border bg-panel-card p-4">
+          <h3 className="text-sm font-medium text-foreground">Drafts</h3>
+          <div className="mt-3 space-y-2">
+            {drafts.length === 0 && (
+              <p className="text-sm text-muted-foreground">No ingest drafts yet.</p>
+            )}
+            {drafts
+              .filter((draft) => draft.playbook_id === playbookId)
+              .map((draft) => (
+                <div
+                  key={draft.ingest_id}
+                  className="flex items-center justify-between gap-3 rounded-lg border bg-background p-3"
+                >
+                  <div className="min-w-0 text-left">
+                    <div className="truncate text-sm text-foreground">{draft.ingest_id}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {draft.rule_count} rules · {draft.status} ·{" "}
+                      {draft.source_filenames.join(", ")}
+                    </div>
+                  </div>
+                  {draft.status === "draft" && (
+                    <button
+                      onClick={() => onPublish(draft)}
+                      className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground"
+                    >
+                      Publish
+                    </button>
+                  )}
+                </div>
+              ))}
+          </div>
+        </section>
       </DialogContent>
     </Dialog>
   );
@@ -993,6 +1310,15 @@ function latestGitMetadata(rules: RuleSummary[]) {
   return rules.find((rule) => rule.git_metadata?.last_commit_hash)?.git_metadata ?? null;
 }
 
+function latestCitedRuleIds(messages: ChatMessage[]) {
+  const latestAnswer = [...messages].reverse().find((message) => message.answer)?.answer;
+  return new Set(
+    latestAnswer?.sources
+      .map((source) => ruleIdFromPath(source.file))
+      .filter((ruleId): ruleId is string => Boolean(ruleId)) ?? [],
+  );
+}
+
 function ruleIdFromPath(path: string) {
   const filename = path.split("/").pop();
   return filename?.replace(/\.md$/, "") || null;
@@ -1009,6 +1335,13 @@ function formatList(values: string[]) {
 
 function truncate(value: string, max: number) {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+function slugInput(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function confidenceClass(label: AskResponse["confidence"]["label"]) {

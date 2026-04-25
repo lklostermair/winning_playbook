@@ -86,6 +86,26 @@ export type UpdateDecision = {
   reindexed: boolean;
 };
 
+export type IngestDraftSummary = {
+  ingest_id: string;
+  playbook_id: string;
+  status: "draft" | "published";
+  source_filenames: string[];
+  rule_count: number;
+  created_at: string;
+};
+
+export type IngestDraftDetail = IngestDraftSummary & {
+  rules: RuleTemplate[];
+};
+
+export type PublishIngestResponse = {
+  ingest_id: string;
+  playbook_id: string;
+  rules_published: number;
+  reindexed: boolean;
+};
+
 export async function getHealth() {
   return request<{ status: string }>("/health");
 }
@@ -160,6 +180,36 @@ export async function reindexPlaybook(playbookId: string) {
   });
 }
 
+export async function uploadIngest(payload: {
+  playbookId: string;
+  playbookName: string;
+  mode: "hybrid" | "llm" | "heuristic";
+  files: File[];
+}) {
+  const form = new FormData();
+  form.append("playbook_id", payload.playbookId);
+  form.append("playbook_name", payload.playbookName);
+  form.append("mode", payload.mode);
+  for (const file of payload.files) {
+    form.append("files", file);
+  }
+  return requestForm<IngestDraftDetail>("/ingest", form);
+}
+
+export async function getIngests(playbookId: string) {
+  const response = await request<{ drafts: IngestDraftSummary[] }>(
+    `/ingest?playbook_id=${encodeURIComponent(playbookId)}`,
+  );
+  return response.drafts;
+}
+
+export async function publishIngest(playbookId: string, ingestId: string) {
+  return request<PublishIngestResponse>(
+    `/ingest/${encodeURIComponent(playbookId)}/${encodeURIComponent(ingestId)}/publish`,
+    { method: "POST" },
+  );
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -167,6 +217,19 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       "Content-Type": "application/json",
       ...init.headers,
     },
+  });
+
+  if (!response.ok) {
+    const detail = await readError(response);
+    throw new Error(detail || `${response.status} ${response.statusText}`);
+  }
+  return response.json() as Promise<T>;
+}
+
+async function requestForm<T>(path: string, body: FormData): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    body,
   });
 
   if (!response.ok) {

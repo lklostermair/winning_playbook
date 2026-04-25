@@ -83,11 +83,12 @@ def build_grounded_answer_prompt(question: str, contexts: list[AnswerContext]) -
 Answer questions based only on the retrieved playbook context.
 
 Rules:
-- Use plain language.
-- Be concise.
-- State the standard position, fallback, red line, and escalation logic when present.
+- Use natural, direct language.
+- Be concise: 2 to 4 short sentences unless the user asks for more detail.
+- Do not mechanically list playbook section names unless that makes the answer clearer.
 - For yes/no acceptability questions, give a clear recommendation first.
-- Treat Red Line and Escalation Logic as controlling over Standard Position.
+- Use the whole retrieved topic to infer the practical recommendation.
+- Treat red lines and escalation logic as controlling over standard/default positions.
 - Do not say a clause is acceptable merely because the standard position describes a legal default.
 - Do not invent legal positions or facts.
 - If the context does not answer the question, say the playbook does not contain enough information.
@@ -102,20 +103,18 @@ Retrieved playbook context:
 
 
 def build_extractive_answer(contexts: list[AnswerContext]) -> str:
-    sections = {context.section: _body_without_heading(context.text) for context in contexts}
-    parts = []
-    if standard := sections.get("Standard Position"):
-        parts.append(f"Standard position: {standard}")
-    if fallback := sections.get("Fallback Position"):
-        parts.append(f"Fallback: {fallback}")
-    if red_line := sections.get("Red Line"):
-        parts.append(f"Red line: {red_line}")
-    if escalation := sections.get("Escalation Logic"):
-        parts.append(f"Escalation: {escalation}")
-    if not parts:
-        top = contexts[0]
-        parts.append(f"The most relevant playbook source is {top.section}: {_body_without_heading(top.text)}")
-    return " ".join(parts)
+    top = contexts[0]
+    red_line = extract_markdown_section(top.text, "Red Line")
+    escalation = extract_markdown_section(top.text, "Escalation Logic")
+    fallback = extract_markdown_section(top.text, "Fallback Position")
+    if red_line:
+        answer = red_line
+        if escalation:
+            answer = f"{answer} Escalate when: {escalation}"
+        return answer
+    if fallback:
+        return fallback
+    return _body_without_heading(top.text)
 
 
 def _body_without_heading(text: str) -> str:
@@ -123,3 +122,20 @@ def _body_without_heading(text: str) -> str:
     if len(lines) <= 2:
         return " ".join(lines)
     return " ".join(lines[2:])
+
+
+def extract_markdown_section(markdown: str, section: str) -> str:
+    lines = markdown.splitlines()
+    current_section: str | None = None
+    body: list[str] = []
+    for line in lines:
+        if line.startswith("## "):
+            if current_section == section:
+                break
+            current_section = line.removeprefix("## ").strip()
+            continue
+        if current_section == section:
+            stripped = line.strip()
+            if stripped and stripped != "_Not specified._":
+                body.append(stripped)
+    return " ".join(body)
