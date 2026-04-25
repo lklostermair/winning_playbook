@@ -1,4 +1,4 @@
-# Dispute Resolution and Language of the Contract
+# Dispute Resolution / Language
 
 ## Standard Position
 International arbitration (e.g., ICC Rules) with a neutral seat, conducted in English. Explicit carve-out allowing either party to seek injunctive relief from ordinary courts
@@ -8,19 +8,19 @@ International arbitration (e.g., ICC Rules) with a neutral seat, conducted in En
 - Ordinary courts of a neutral jurisdiction, provided the NDA includes provisions for confidential treatment of proceedings
 
 ## Red Line
-Reject exclusive jurisdiction of the counterparty's local courts with no arbitration option, especially in cross-border agreements
+Exclusive jurisdiction of the counterparty's local courts with no arbitration option, especially in cross-border agreements
 
 ## Decision Logic
 _Not specified._
 
 ## Escalation Logic
-If the NDA provides for ordinary courts in the counterparty's jurisdiction with no alternative, escalate.
+Escalation is triggered for disputes with a value exceeding 200 dollars.
 
 ## Rationale
-How disputes are resolved affects the confidentiality of the proceedings themselves. Court proceedings are typically public, which means confidential information may be exposed during litigation. The language of proceedings also matters — translations are costly and can introduce errors.
+Protects confidentiality of proceedings
 
 ## Negotiation Tips
-- NDAs that designate ordinary courts (especially in the counterparty's jurisdiction) as the dispute resolution forum. Public court proceedings are inherently risky for disputes involving confidential information.
+_Not specified._
 
 ## Suggested Language
 _Not specified._
@@ -30,4 +30,4 @@ _Not specified._
 - Rule ID: dispute-resolution-language
 - Status: approved
 - Source Documents:
-  - data/examples/Sample NDA Playbook.docx (Clause 13)
+  - vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx (Sheet: Sample NDA Playbook, Clause # 13)

@@ -1,25 +1,23 @@
 {
   "playbook_id": "nda",
   "rule_id": "dispute-resolution-language",
-  "topic": "Dispute Resolution and Language of the Contract",
+  "topic": "Dispute Resolution / Language",
   "standard_position": "International arbitration (e.g., ICC Rules) with a neutral seat, conducted in English. Explicit carve-out allowing either party to seek injunctive relief from ordinary courts",
   "fallback_positions": [
     "Arbitration under recognized institutional rules (e.g., LCIA, SIAC, DIS) with a neutral seat",
     "Ordinary courts of a neutral jurisdiction, provided the NDA includes provisions for confidential treatment of proceedings"
   ],
-  "red_line": "Reject exclusive jurisdiction of the counterparty's local courts with no arbitration option, especially in cross-border agreements",
+  "red_line": "Exclusive jurisdiction of the counterparty's local courts with no arbitration option, especially in cross-border agreements",
   "decision_logic": null,
-  "escalation_logic": "If the NDA provides for ordinary courts in the counterparty's jurisdiction with no alternative, escalate.",
-  "rationale": "How disputes are resolved affects the confidentiality of the proceedings themselves. Court proceedings are typically public, which means confidential information may be exposed during litigation. The language of proceedings also matters — translations are costly and can introduce errors.",
-  "negotiation_tips": [
-    "NDAs that designate ordinary courts (especially in the counterparty's jurisdiction) as the dispute resolution forum. Public court proceedings are inherently risky for disputes involving confidential information."
-  ],
+  "escalation_logic": "Escalation is triggered for disputes with a value exceeding 200 dollars.",
+  "rationale": "Protects confidentiality of proceedings",
+  "negotiation_tips": [],
   "suggested_language": null,
   "status": "approved",
   "source_documents": [
     {
-      "filename": "data/examples/Sample NDA Playbook.docx",
-      "location": "Clause 13"
+      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Sheet: Sample NDA Playbook, Clause # 13"
     }
   ]
 }

@@ -1,0 +1,18 @@
+{
+  "update_id": "update_20260425193810_4e9f5067",
+  "playbook_id": "nda",
+  "target_rule_id": "dispute-resolution-language",
+  "status": "approved",
+  "reason": "To define the monetary threshold for escalation.",
+  "proposed_change": {
+    "section": "Escalation Logic",
+    "old_text": "Provides for ordinary courts in the counterparty's jurisdiction with no alternative",
+    "new_text": "Escalation is triggered for disputes with a value exceeding 200 dollars."
+  },
+  "suggested_by": "lklostermair",
+  "suggested_at": "2026-04-25T19:38:10.007520Z",
+  "decided_by": "lklostermair",
+  "decided_at": "2026-04-25T19:38:10.146281Z",
+  "decision_reason": null,
+  "commit_hash": null
+}
