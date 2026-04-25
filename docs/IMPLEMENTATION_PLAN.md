@@ -53,7 +53,7 @@ The mission is to make the playbook itself come alive. Contracts can provide evi
 | WP4 Git Metadata Service | Done | Git history metadata exposed on rule APIs and ask source stubs; commit helper ready for WP7. |
 | WP5 Retrieval And Indexing | Done | Chroma index from vault Markdown sections using batched/cached Gemini embeddings and real `/reindex`. |
 | WP6 Ask Playbook | Done | Retrieval-grounded Gemini answer flow, confidence heuristic, sources, and low-evidence refusal. |
-| WP7 Proposed Update Workflow | Pending | Apply approved changes to vault, commit through Git service, then reindex. |
+| WP7 Proposed Update Workflow | Done | Proposed updates are persisted, approve applies vault changes, commits affected files, and reindexes. |
 | WP8 Frontend Integration | Pending | Lovable React UI against stable backend contracts. |
 | WP9 Ingestion MVP | Partially covered | Adaptive extraction exists; upload/ingest API workflow still pending. |
 | WP10 Demo Hardening | Pending | Reset, env validation, predictable demo script, polish. |
@@ -269,6 +269,8 @@ Current critical path before WP5:
 - Plain-language guidance is visible without hiding the audit trail.
 
 ### WP7: Proposed Update Workflow
+
+**Status:** Complete
 
 **Owner lane:** Backend/RAG, Frontend Demo UX
 
