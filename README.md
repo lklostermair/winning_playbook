@@ -1,15 +1,15 @@
-# Living Playbook
+# dandelion
 
-Living Playbook is a local demo app that turns legal playbooks from Word, PDF, Excel, or CSV into an auditable Markdown/JSON vault. Users can ask questions, see source-grounded answers, propose updates, and let lawyers approve changes that are committed and reindexed.
+dandelion is a local legal playbook assistant. It turns playbooks or existing contracts into an auditable Markdown/JSON vault, answers questions from selected playbooks, cites the exact topics it used, and can draft and commit rule updates.
 
 ## What You Can Do
 
-- Upload or seed a playbook into `vault/`.
-- Ask questions such as `Can we accept unlimited liability?`
-- See cited sources, confidence, Git author, and change time.
-- Propose a playbook update.
-- Approve or reject updates as Lawyer/Admin.
-- Rebuild the retrieval index from the vault at any time.
+- Upload a structured playbook from DOCX, PDF, XLSX, or CSV.
+- Upload existing contracts and let Gemini synthesize a coherent ruleset.
+- Select one or more playbooks for answers.
+- Ask questions in text or voice.
+- Expand compact source pills to inspect referenced topics.
+- Open a rule sidebar, draft an update with dandelion, confirm it, commit it, and rebuild retrieval.
 
 ## Requirements
 
@@ -18,12 +18,13 @@ Living Playbook is a local demo app that turns legal playbooks from Word, PDF, E
 - Node.js and npm
 - Google Cloud ADC for Gemini/Vertex AI, or `GEMINI_API_KEY`
 
-The project uses:
+The app uses:
 
 - FastAPI backend on `http://127.0.0.1:8000`
 - TanStack/Vite frontend on `http://localhost:5173`
 - Chroma as a local disposable vector index
-- Gemini for extraction, answer generation, and embeddings
+- Gemini for extraction, answer generation, rule-update drafting, and embeddings
+- Faster Whisper and Kokoro ONNX for local voice input/output
 
 ## First-Time Setup
 
@@ -49,7 +50,7 @@ Then validate the local setup:
 uv run python scripts/dev.py validate-demo
 ```
 
-## Run The Demo
+## Run Locally
 
 Reset the default NDA demo vault and rebuild retrieval:
 
@@ -77,37 +78,45 @@ uv run python scripts/dev.py smoke-demo
 
 ## Basic Usage
 
-### Ask The Playbook
+### Ask dandelion
 
 1. Start the app.
-2. Select the `NDA Playbook`.
-3. Ask one of:
-   - `Can we accept unlimited liability?`
-   - `Can we accept a unilateral NDA?`
-   - `What is our red line on contract penalties?`
-4. Inspect the highlighted cited branch, answer sources, confidence, and Git metadata.
-5. Click a source card or graph node to open the rule panel.
+2. Select the playbooks that should be included in the answer.
+3. Ask a question in the input or use voice mode.
+4. Click the compact source pill, for example `3 sources`, to expand referenced topics.
+5. Click a source or graph node to open the rule sidebar.
 
-### Propose And Approve An Update
+### Update a Rule
 
-1. Open a rule by clicking a source or graph node.
-2. Switch role to `Lawyer` or `Admin`.
-3. Add proposed text and a reason.
-4. Create the proposal.
-5. Approve or reject it in the rule panel.
+1. Open a rule from a source or graph node.
+2. In the rule sidebar, describe what should change.
+3. Click `Draft with dandelion`.
+4. Review the drafted section, text, and reason.
+5. Click `Update & Commit`.
 
-Approval writes the Markdown/JSON rule, creates a Git commit when Git is configured, and reindexes retrieval.
+The backend updates the Markdown/JSON rule files, creates a Git commit when Git is configured, and reindexes retrieval. The old proposed-update review tab is not part of the current UI.
 
-### Upload A New Playbook
+### Upload a Playbook
 
 1. Click `Upload`.
-2. Enter a playbook id and name.
-3. Select DOCX, PDF, XLSX, or CSV files.
-4. Create a draft.
-5. Expand the draft and review extracted topics.
-6. Publish when it should replace that playbook's official vault.
+2. Choose `Existing playbook`.
+3. Enter a playbook id and name.
+4. Select DOCX, PDF, XLSX, or CSV files.
+5. Create a draft.
+6. Expand the draft and review extracted topics.
+7. Publish when it should replace that playbook's official vault.
 
-Publishing replaces the official rules for that playbook and rebuilds retrieval.
+### Generate a Playbook From Contracts
+
+1. Click `Upload`.
+2. Choose `Existing contracts`.
+3. Enter a playbook id and name.
+4. Upload one or more contracts.
+5. Create a draft.
+6. Review the synthesized topics.
+7. Publish when the generated ruleset should become searchable.
+
+Contract synthesis requires Gemini. It reads the uploaded contracts together, finds recurring topics, merges overlapping clauses, captures meaningful variations, and writes a reviewable draft ruleset.
 
 ## Common Commands
 
@@ -118,7 +127,6 @@ Publishing replaces the official rules for that playbook and rebuilds retrieval.
 | `uv run python scripts/dev.py reset-demo` | Reset default NDA vault and rebuild Chroma. |
 | `uv run python scripts/reset_demo.py --mode heuristic --skip-index` | Offline extraction smoke test without embeddings. |
 | `uv run python scripts/dev.py smoke-demo` | Check health, playbooks, rules, and ask endpoints. |
-| `uv run python scripts/smoke_demo.py --write-review` | Also create and reject a temporary proposed update. |
 | `uv run python scripts/dev.py test` | Run backend service tests. |
 | `uv run python scripts/dev.py frontend-lint` | Run frontend lint. |
 | `uv run python scripts/dev.py frontend-build` | Build the frontend. |
@@ -133,11 +141,7 @@ Publishing replaces the official rules for that playbook and rebuilds retrieval.
 - `vault/` - Markdown/JSON source of truth
 - `chroma/` - generated vector index
 
-`chroma/` is disposable. Keep `chroma/.gitkeep`, but the other files can be deleted and rebuilt with:
-
-```bash
-uv run python scripts/dev.py reset-demo
-```
+`chroma/`, `data/raw/`, and `vault/**/draft_ingest/` are runtime artifacts. Keep `.gitkeep` files, but generated contents can be deleted and rebuilt.
 
 ## Troubleshooting
 
@@ -145,7 +149,7 @@ uv run python scripts/dev.py reset-demo
 - **ADC/Gemini issues:** run `uv run python scripts/dev.py validate-demo`, then rerun the `gcloud auth application-default ...` commands above.
 - **Retrieval seems stale:** delete generated files in `chroma/` except `.gitkeep`, then run `uv run python scripts/dev.py reset-demo`.
 - **Frontend points to wrong backend:** set `VITE_API_BASE_URL=http://localhost:8000`.
-- **Resetting a non-default playbook:** pass `--yes` only when you intend to replace that playbook's official rules.
+- **Voice model is slow on first use:** run the app once and let `/voice/warmup` finish; models are cached locally after download.
 
 ## More Docs
 

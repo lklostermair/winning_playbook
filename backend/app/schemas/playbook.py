@@ -2,13 +2,14 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.ids import SafeId
 from app.schemas.source import GitMetadata, SourceDocument
 
 RuleStatus = Literal["draft", "approved", "pending_update", "archived"]
 
 
 class PlaybookSummary(BaseModel):
-    playbook_id: str
+    playbook_id: SafeId
     name: str
     description: str | None = None
 
@@ -18,20 +19,20 @@ class ListPlaybooksResponse(BaseModel):
 
 
 class RuleSummary(BaseModel):
-    rule_id: str
+    rule_id: SafeId
     topic: str
     status: RuleStatus
     git_metadata: GitMetadata | None = None
 
 
 class PlaybookRulesResponse(BaseModel):
-    playbook_id: str
+    playbook_id: SafeId
     rules: list[RuleSummary]
 
 
 class RuleTemplate(BaseModel):
-    playbook_id: str
-    rule_id: str
+    playbook_id: SafeId
+    rule_id: SafeId
     topic: str
     standard_position: str | None = None
     fallback_positions: list[str] = Field(default_factory=list)
@@ -46,7 +47,7 @@ class RuleTemplate(BaseModel):
 
 
 class RuleDetailResponse(BaseModel):
-    playbook_id: str
+    playbook_id: SafeId
     rule: RuleTemplate
     markdown: str
     git_metadata: GitMetadata

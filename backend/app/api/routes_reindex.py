@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
+from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
 from app.schemas.reindex import ReindexRequest, ReindexResponse
@@ -31,8 +32,10 @@ async def reindex_playbook(request: ReindexRequest) -> ReindexResponse:
         chroma_store=ChromaStore(settings.chroma_dir),
     )
     try:
-        chunks_indexed = retrieval_service.reindex_playbook(request.playbook_id)
-    except (EmbeddingServiceError, GitServiceError, ValueError) as exc:
+        chunks_indexed = await run_in_threadpool(retrieval_service.reindex_playbook, request.playbook_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except (EmbeddingServiceError, GitServiceError) as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
     return ReindexResponse(
         playbook_id=request.playbook_id,

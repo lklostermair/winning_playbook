@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from app.schemas.ids import is_safe_update_id
 from app.schemas.playbook import RuleTemplate
 from app.schemas.update import (
     CreateProposedUpdateRequest,
@@ -101,6 +102,8 @@ class ProposedUpdateService:
         return record
 
     def get_update(self, update_id: str) -> ProposedUpdateRecord:
+        if not is_safe_update_id(update_id):
+            raise ProposedUpdateNotFoundError(f"Proposed update `{update_id}` was not found.")
         matches = sorted(self.vault_service.vault_dir.glob(f"*/proposed_updates/{update_id}.json"))
         if not matches:
             raise ProposedUpdateNotFoundError(f"Proposed update `{update_id}` was not found.")

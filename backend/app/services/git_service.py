@@ -1,4 +1,5 @@
 import subprocess
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -73,6 +74,19 @@ class GitService:
         description = short_description.strip() or "update rule"
         return f"[playbook:{playbook_id}] Update {rule_id}: {description}"
 
+    def get_identity(self) -> dict[str, str | None]:
+        name = self._run_git("config", "--get", "user.name", check=False).stdout.strip()
+        email = self._run_git("config", "--get", "user.email", check=False).stdout.strip()
+        username = github_username_from_remote(
+            self._run_git("remote", "get-url", "origin", check=False).stdout.strip()
+        )
+        return {
+            "name": name or None,
+            "email": email or None,
+            "github_username": username or name or None,
+            "avatar_url": f"https://github.com/{username}.png" if username else None,
+        }
+
     def _relative_path(self, file_path: Path) -> Path:
         resolved = file_path.resolve()
         try:
@@ -104,3 +118,10 @@ class GitService:
         if check and result.returncode != 0:
             raise GitServiceError(result.stderr.strip() or result.stdout.strip() or f"Git command failed: git {' '.join(args)}")
         return result
+
+
+def github_username_from_remote(remote_url: str) -> str | None:
+    if not remote_url:
+        return None
+    match = re.search(r"github\.com[:/]([^/]+)/", remote_url)
+    return match.group(1) if match else None

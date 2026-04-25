@@ -13,7 +13,7 @@ if str(BACKEND_DIR) not in sys.path:
 from app.schemas.playbook import PlaybookSummary, RuleTemplate
 from app.schemas.update import CreateProposedUpdateRequest, ProposedChange
 from app.services.proposed_update_service import ProposedUpdateError, ProposedUpdateService
-from app.services.vault_service import VaultService
+from app.services.vault_service import UnsafeVaultPathError, VaultService
 
 
 class ProposedUpdateServiceTest(unittest.TestCase):
@@ -90,6 +90,13 @@ class ProposedUpdateServiceTest(unittest.TestCase):
                     suggested_by="unit-test",
                 )
             )
+
+    def test_vault_rejects_path_traversal_ids(self) -> None:
+        with self.assertRaises(UnsafeVaultPathError):
+            self.vault.rule_json_path("../outside", "liability")
+
+        with self.assertRaises(UnsafeVaultPathError):
+            self.vault.rule_markdown_path("test", "../liability")
 
 
 if __name__ == "__main__":

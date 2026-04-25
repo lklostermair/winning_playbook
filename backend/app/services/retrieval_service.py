@@ -37,8 +37,11 @@ class RetrievalService:
         return self.chroma_store.replace_playbook_chunks(playbook_id, chunks, embeddings, metadata)
 
     def search(self, playbook_id: str, question: str, top_k: int = 5) -> list[dict[str, Any]]:
+        return self.search_playbooks([playbook_id], question, top_k=top_k)
+
+    def search_playbooks(self, playbook_ids: list[str], question: str, top_k: int = 5) -> list[dict[str, Any]]:
         query_embedding = self.embedding_service.embed_query(question)
-        return self.chroma_store.query(playbook_id, query_embedding, top_k=top_k)
+        return self.chroma_store.query_playbooks(playbook_ids, query_embedding, top_k=top_k)
 
 
 def chunk_metadata(chunk: MarkdownChunk, git_metadata: GitMetadata) -> dict[str, Any]:

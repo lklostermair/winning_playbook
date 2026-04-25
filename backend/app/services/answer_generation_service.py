@@ -1,4 +1,5 @@
 import time
+import json
 from dataclasses import dataclass
 
 from google import genai
@@ -18,6 +19,12 @@ class AnswerContext:
     text: str
 
 
+@dataclass(frozen=True)
+class ConversationTurn:
+    role: str
+    text: str
+
+
 class GeminiAnswerGenerationService:
     def __init__(
         self,
@@ -33,7 +40,12 @@ class GeminiAnswerGenerationService:
         self.api_key = api_key
         self.temperature = temperature
 
-    def generate_answer(self, question: str, contexts: list[AnswerContext]) -> str:
+    def generate_answer(
+        self,
+        question: str,
+        contexts: list[AnswerContext],
+        conversation: list[ConversationTurn] | None = None,
+    ) -> str:
         if not contexts:
             raise AnswerGenerationError("Cannot generate an answer without retrieved context.")
         if not (self.project or self.api_key):
@@ -41,7 +53,7 @@ class GeminiAnswerGenerationService:
 
         response = None
         client = self._client()
-        prompt = build_grounded_answer_prompt(question, contexts)
+        prompt = build_grounded_answer_prompt(question, contexts, conversation or [])
         for attempt in range(4):
             try:
                 response = client.models.generate_content(
@@ -59,6 +71,56 @@ class GeminiAnswerGenerationService:
             return build_extractive_answer(contexts)
         return response.text.strip()
 
+    def generate_chat_title(self, question: str) -> str:
+        fallback = build_chat_title_fallback(question)
+        if not (self.project or self.api_key):
+            return fallback
+
+        response = None
+        client = self._client()
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=self.model,
+                    contents=build_chat_title_prompt(question),
+                    config=types.GenerateContentConfig(temperature=0.4),
+                )
+                break
+            except errors.APIError as exc:
+                if getattr(exc, "code", None) != 429 or attempt == 2:
+                    return fallback
+                time.sleep(2**attempt)
+
+        if response is None or not response.text:
+            return fallback
+        return clean_chat_title(response.text, fallback)
+
+    def generate_rule_update_draft(self, rule_markdown: str, instruction: str) -> dict[str, str]:
+        if not (self.project or self.api_key):
+            raise AnswerGenerationError("Gemini rule update drafting is not configured.")
+
+        response = None
+        client = self._client()
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=self.model,
+                    contents=build_rule_update_draft_prompt(rule_markdown, instruction),
+                    config=types.GenerateContentConfig(
+                        temperature=0.3,
+                        response_mime_type="application/json",
+                    ),
+                )
+                break
+            except errors.APIError as exc:
+                if getattr(exc, "code", None) != 429 or attempt == 2:
+                    raise AnswerGenerationError(f"Could not draft rule update: {exc}") from exc
+                time.sleep(2**attempt)
+
+        if response is None or not response.text:
+            raise AnswerGenerationError("Gemini returned an empty rule update draft.")
+        return parse_rule_update_draft(response.text)
+
     def _client(self) -> genai.Client:
         if self.project:
             return genai.Client(vertexai=True, project=self.project, location=self.location)
@@ -67,7 +129,11 @@ class GeminiAnswerGenerationService:
         raise AnswerGenerationError("Gemini answer generation is not configured.")
 
 
-def build_grounded_answer_prompt(question: str, contexts: list[AnswerContext]) -> str:
+def build_grounded_answer_prompt(
+    question: str,
+    contexts: list[AnswerContext],
+    conversation: list[ConversationTurn],
+) -> str:
     context_text = "\n\n".join(
         (
             f"[{context.source_id}]\n"
@@ -78,6 +144,7 @@ def build_grounded_answer_prompt(question: str, contexts: list[AnswerContext]) -
         )
         for context in contexts
     )
+    conversation_text = build_conversation_context(conversation)
     return f"""You are a legal playbook assistant.
 
 Answer questions based only on the retrieved playbook context.
@@ -85,6 +152,8 @@ Answer questions based only on the retrieved playbook context.
 Rules:
 - Use natural, direct language.
 - Be concise: 2 to 4 short sentences unless the user asks for more detail.
+- Use the prior conversation only to understand pronouns, references, and follow-up intent.
+- Do not treat prior assistant answers as legal authority; retrieved playbook context is controlling.
 - Do not mechanically list playbook section names unless that makes the answer clearer.
 - For yes/no acceptability questions, give a clear recommendation first.
 - Use the whole retrieved topic to infer the practical recommendation.
@@ -97,9 +166,106 @@ Rules:
 User question:
 {question}
 
+Prior conversation:
+{conversation_text}
+
 Retrieved playbook context:
 {context_text}
 """
+
+
+def build_conversation_context(conversation: list[ConversationTurn], max_turns: int = 8) -> str:
+    if not conversation:
+        return "_No prior conversation._"
+    recent_turns = conversation[-max_turns:]
+    lines = []
+    for turn in recent_turns:
+        role = "User" if turn.role == "user" else "Assistant"
+        text = " ".join(turn.text.split())
+        if len(text) > 700:
+            text = text[:697].rstrip() + "..."
+        lines.append(f"{role}: {text}")
+    return "\n".join(lines)
+
+
+def build_chat_title_prompt(question: str) -> str:
+    return f"""Create a short workspace title for this legal playbook question.
+
+Rules:
+- Return only the title.
+- Use 2 to 5 words.
+- Be specific to the user's question.
+- Do not use quotes, punctuation, or labels.
+- Do not answer the question.
+
+Question:
+{question}
+"""
+
+
+def build_rule_update_draft_prompt(rule_markdown: str, instruction: str) -> str:
+    return f"""You are drafting a precise legal playbook rule update.
+
+Return only JSON with these exact keys:
+- "section": one of "Standard Position", "Fallback Position", "Red Line", "Escalation Logic", "Suggested Language"
+- "reason": concise explanation for the change
+- "new_text": replacement text for that one section
+
+Rules:
+- Draft only one section update.
+- Keep the replacement concise, natural, and operational.
+- Preserve the rule's existing style.
+- Do not invent facts outside the existing rule and the user's instruction.
+- If the user asks for a broad update, choose the section that should change most directly.
+
+User instruction:
+{instruction}
+
+Current rule:
+{rule_markdown}
+"""
+
+
+def parse_rule_update_draft(text: str) -> dict[str, str]:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`")
+        cleaned = cleaned.removeprefix("json").strip()
+    try:
+        payload = json.loads(cleaned)
+    except json.JSONDecodeError as exc:
+        raise AnswerGenerationError("Gemini returned invalid JSON for the rule update draft.") from exc
+
+    section = str(payload.get("section", "")).strip()
+    reason = str(payload.get("reason", "")).strip()
+    new_text = str(payload.get("new_text", "")).strip()
+    if section not in {
+        "Standard Position",
+        "Fallback Position",
+        "Red Line",
+        "Escalation Logic",
+        "Suggested Language",
+    }:
+        raise AnswerGenerationError("Gemini returned an unsupported rule section.")
+    if not reason or not new_text:
+        raise AnswerGenerationError("Gemini returned an incomplete rule update draft.")
+    return {"section": section, "reason": reason, "new_text": new_text}
+
+
+def build_chat_title_fallback(question: str) -> str:
+    words = [word.strip(".,;:!?()[]{}\"'") for word in question.split()]
+    title = " ".join(word for word in words if word)[:48].strip()
+    return title or "New chat"
+
+
+def clean_chat_title(title: str, fallback: str) -> str:
+    first_line = title.strip().splitlines()[0] if title.strip() else ""
+    cleaned = first_line.strip().strip("\"'`“”‘’").rstrip(".,;:!?")
+    if not cleaned:
+        return fallback
+    if len(cleaned) > 48:
+        cleaned = cleaned[:45].rstrip() + "..."
+    return cleaned
 
 
 def build_extractive_answer(contexts: list[AnswerContext]) -> str:

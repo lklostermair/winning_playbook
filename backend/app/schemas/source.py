@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.schemas.ids import SafeId
+
 
 class GitMetadata(BaseModel):
     last_changed_by: str
@@ -16,6 +18,8 @@ class SourceDocument(BaseModel):
 
 
 class SourceReference(BaseModel):
+    playbook_id: SafeId
+    rule_id: SafeId
     file: str
     section: str
     snippet: str

@@ -38,10 +38,18 @@ class ChromaStore:
         return len(chunks)
 
     def query(self, playbook_id: str, query_embedding: list[float], top_k: int = 5) -> list[dict[str, Any]]:
+        return self.query_playbooks([playbook_id], query_embedding, top_k=top_k)
+
+    def query_playbooks(self, playbook_ids: list[str], query_embedding: list[float], top_k: int = 5) -> list[dict[str, Any]]:
+        where: dict[str, Any]
+        if len(playbook_ids) == 1:
+            where = {"playbook_id": playbook_ids[0]}
+        else:
+            where = {"playbook_id": {"$in": playbook_ids}}
         result = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,
-            where={"playbook_id": playbook_id},
+            where=where,
             include=["documents", "metadatas", "distances"],
         )
         ids = result.get("ids", [[]])[0]

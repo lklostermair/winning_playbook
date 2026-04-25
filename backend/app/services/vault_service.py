@@ -2,6 +2,7 @@ import json
 import re
 from pathlib import Path
 
+from app.schemas.ids import is_safe_id
 from app.schemas.playbook import PlaybookSummary, RuleSummary, RuleTemplate
 from app.schemas.source import SourceDocument
 
@@ -10,12 +11,16 @@ class RuleNotFoundError(FileNotFoundError):
     pass
 
 
+class UnsafeVaultPathError(ValueError):
+    pass
+
+
 class VaultService:
     def __init__(self, vault_dir: Path) -> None:
         self.vault_dir = vault_dir
 
     def playbook_dir(self, playbook_id: str) -> Path:
-        return self.vault_dir / playbook_id
+        return self._safe_path(self.vault_dir, self._safe_id(playbook_id, "playbook_id"))
 
     def rules_dir(self, playbook_id: str) -> Path:
         return self.playbook_dir(playbook_id) / "rules"
@@ -33,10 +38,10 @@ class VaultService:
         return self.metadata_dir(playbook_id) / "playbook.json"
 
     def rule_markdown_path(self, playbook_id: str, rule_id: str) -> Path:
-        return self.rules_dir(playbook_id) / f"{rule_id}.md"
+        return self._safe_path(self.rules_dir(playbook_id), f"{self._safe_id(rule_id, 'rule_id')}.md")
 
     def rule_json_path(self, playbook_id: str, rule_id: str) -> Path:
-        return self.rule_metadata_dir(playbook_id) / f"{rule_id}.json"
+        return self._safe_path(self.rule_metadata_dir(playbook_id), f"{self._safe_id(rule_id, 'rule_id')}.json")
 
     def ensure_playbook(self, playbook: PlaybookSummary) -> None:
         self.rules_dir(playbook.playbook_id).mkdir(parents=True, exist_ok=True)
@@ -151,7 +156,28 @@ class VaultService:
     @staticmethod
     def slugify_topic(topic: str) -> str:
         slug = re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-")
+        slug = slug[:81].strip("-")
         return slug or "untitled-rule"
+
+    @staticmethod
+    def normalize_id(value: str, fallback: str = "untitled") -> str:
+        normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+        normalized = normalized[:81].strip("-")
+        return normalized if is_safe_id(normalized) else fallback
+
+    @staticmethod
+    def _safe_id(value: str, field_name: str) -> str:
+        if not is_safe_id(value):
+            raise UnsafeVaultPathError(f"Invalid {field_name}: `{value}`")
+        return value
+
+    def _safe_path(self, base: Path, *parts: str) -> Path:
+        root = self.vault_dir.resolve()
+        path = base.joinpath(*parts)
+        resolved = path.resolve(strict=False)
+        if resolved != root and root not in resolved.parents:
+            raise UnsafeVaultPathError(f"Path escapes vault directory: {path}")
+        return path
 
     @staticmethod
     def _text_or_placeholder(value: str | None) -> str:

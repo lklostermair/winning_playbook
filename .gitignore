@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 .venv/
 .uv-cache/
+.npm-cache/
 
 # Env
 .env
@@ -20,6 +21,7 @@ data/processed/*
 
 # Vault runtime files
 vault/**/.obsidian/
+vault/**/draft_ingest/
 
 # Node
 node_modules/

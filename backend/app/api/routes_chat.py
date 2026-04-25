@@ -1,7 +1,13 @@
 from fastapi import APIRouter, HTTPException, status
+from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
-from app.schemas.chat import AskQuestionRequest, AskQuestionResponse
+from app.schemas.chat import (
+    AskQuestionRequest,
+    AskQuestionResponse,
+    GenerateChatTitleRequest,
+    GenerateChatTitleResponse,
+)
 from app.services.answer_generation_service import AnswerGenerationError, GeminiAnswerGenerationService
 from app.services.ask_service import AskService
 from app.services.chroma_store import ChromaStore
@@ -42,6 +48,23 @@ async def ask_playbook(request: AskQuestionRequest) -> AskQuestionResponse:
         ),
     )
     try:
-        return ask_service.ask(request.playbook_id, request.question)
+        playbook_ids = request.playbook_ids or [request.playbook_id]
+        return await run_in_threadpool(ask_service.ask, playbook_ids, request.question, request.conversation)
     except (AnswerGenerationError, EmbeddingServiceError, GitServiceError, ValueError) as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+
+
+@router.post("/chat/title", response_model=GenerateChatTitleResponse)
+async def generate_chat_title(request: GenerateChatTitleRequest) -> GenerateChatTitleResponse:
+    settings = get_settings()
+    service = GeminiAnswerGenerationService(
+        project=settings.google_cloud_project,
+        location=settings.google_cloud_location,
+        model=settings.gemini_model,
+        api_key=settings.gemini_api_key,
+    )
+    try:
+        title = await run_in_threadpool(service.generate_chat_title, request.question)
+        return GenerateChatTitleResponse(title=title)
+    except AnswerGenerationError as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc

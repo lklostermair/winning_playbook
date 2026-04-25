@@ -1,9 +1,13 @@
 import re
 from typing import Any
 
-from app.schemas.chat import AskQuestionResponse, Confidence
+from app.schemas.chat import AskQuestionResponse, Confidence, ConversationMessage
 from app.schemas.source import GitMetadata, SourceReference
-from app.services.answer_generation_service import AnswerContext, GeminiAnswerGenerationService
+from app.services.answer_generation_service import (
+    AnswerContext,
+    ConversationTurn,
+    GeminiAnswerGenerationService,
+)
 from app.services.retrieval_service import RetrievalService
 
 MIN_RETRIEVAL_SCORE = 0.52
@@ -38,6 +42,44 @@ QUESTION_STOPWORDS = frozenset(
         "clause",
     }
 )
+FOLLOW_UP_TERMS = frozenset(
+    {
+        "also",
+        "and",
+        "same",
+        "previous",
+        "before",
+        "above",
+        "there",
+        "that",
+        "this",
+        "it",
+        "they",
+        "them",
+        "those",
+        "these",
+    }
+)
+QUESTION_TERMS = frozenset(
+    {
+        "can",
+        "could",
+        "should",
+        "may",
+        "must",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "why",
+        "how",
+        "is",
+        "are",
+        "does",
+        "do",
+    }
+)
 
 
 class AskService:
@@ -49,16 +91,39 @@ class AskService:
         self.retrieval_service = retrieval_service
         self.answer_generation_service = answer_generation_service
 
-    def ask(self, playbook_id: str, question: str) -> AskQuestionResponse:
-        hits = self.retrieval_service.search(playbook_id, question, top_k=TOP_K)
+    def ask(
+        self,
+        playbook_ids: list[str],
+        question: str,
+        conversation: list[ConversationMessage] | None = None,
+    ) -> AskQuestionResponse:
+        conversation = conversation or []
+        playbook_ids = dedupe_playbook_ids(playbook_ids)
+        if not playbook_ids:
+            raise ValueError("Select at least one playbook for retrieval.")
+        if not is_meaningful_question_or_followup(question, conversation):
+            return AskQuestionResponse(
+                answer="I could not tell what you want to check. Please ask a concrete playbook question.",
+                confidence=Confidence(
+                    score=0.0,
+                    label="low",
+                    reason="The current question was not specific enough to search the selected playbooks.",
+                ),
+                sources=[],
+            )
+
+        retrieval_query = build_retrieval_query(question, conversation)
+        hits = self.retrieval_service.search_playbooks(playbook_ids, retrieval_query, top_k=TOP_K)
         if not hits:
-            self.retrieval_service.reindex_playbook(playbook_id)
-            hits = self.retrieval_service.search(playbook_id, question, top_k=TOP_K)
+            for playbook_id in playbook_ids:
+                self.retrieval_service.reindex_playbook(playbook_id)
+            hits = self.retrieval_service.search_playbooks(playbook_ids, retrieval_query, top_k=TOP_K)
 
         relevant_hits = [
             hit
             for hit in hits
-            if float(hit["score"]) >= MIN_RETRIEVAL_SCORE and has_question_term_overlap(question, str(hit["document"]))
+            if float(hit["score"]) >= MIN_RETRIEVAL_SCORE
+            and has_question_term_overlap(retrieval_query, str(hit["document"]))
         ]
         confidence = calculate_confidence(relevant_hits)
         sources = [source_reference_from_hit(hit) for hit in relevant_hits]
@@ -78,8 +143,55 @@ class AskService:
             key=lambda hit: ANSWER_SECTION_PRIORITY.get(str(hit["metadata"].get("section", "")), 99),
         )
         contexts = [answer_context_from_hit(index + 1, hit) for index, hit in enumerate(answer_hits)]
-        answer = self.answer_generation_service.generate_answer(question, contexts)
+        answer = self.answer_generation_service.generate_answer(
+            question,
+            contexts,
+            [ConversationTurn(role=message.role, text=message.text) for message in conversation],
+        )
         return AskQuestionResponse(answer=answer, confidence=confidence, sources=sources)
+
+
+def build_retrieval_query(question: str, conversation: list[ConversationMessage]) -> str:
+    if not should_use_conversation_context(question, conversation):
+        return question
+    previous_user_question = [message.text for message in conversation if message.role == "user"][-1:]
+    if not previous_user_question:
+        return question
+    return (
+        f"Current question, primary retrieval intent:\n{question}\n\n"
+        f"Previous user question, only for resolving references:\n{previous_user_question[0]}"
+    )
+
+
+def is_meaningful_question_or_followup(question: str, conversation: list[ConversationMessage]) -> bool:
+    terms = significant_terms(question)
+    if len(terms) >= 2:
+        return True
+    normalized_words = words(question)
+    has_question_shape = "?" in question or bool(normalized_words.intersection(QUESTION_TERMS))
+    if len(terms) >= 1 and has_question_shape:
+        return True
+    return should_use_conversation_context(question, conversation) and len(terms) >= 1
+
+
+def should_use_conversation_context(question: str, conversation: list[ConversationMessage]) -> bool:
+    if not conversation:
+        return False
+    normalized_words = words(question)
+    if "?" in question and len(significant_terms(question)) >= 2:
+        return False
+    return bool(normalized_words.intersection(FOLLOW_UP_TERMS))
+
+
+def dedupe_playbook_ids(playbook_ids: list[str]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for playbook_id in playbook_ids:
+        normalized = playbook_id.strip()
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            deduped.append(normalized)
+    return deduped
 
 
 def calculate_confidence(hits: list[dict[str, Any]]) -> Confidence:
@@ -109,6 +221,8 @@ def calculate_confidence(hits: list[dict[str, Any]]) -> Confidence:
 def source_reference_from_hit(hit: dict[str, Any]) -> SourceReference:
     metadata = hit["metadata"]
     return SourceReference(
+        playbook_id=str(metadata["playbook_id"]),
+        rule_id=str(metadata["rule_id"]),
         file=str(metadata["source_file"]),
         section=str(metadata["section"]),
         snippet=snippet_from_document(str(hit["document"])),
@@ -163,8 +277,12 @@ def has_question_term_overlap(question: str, document: str) -> bool:
 
 def significant_terms(text: str) -> set[str]:
     terms = set()
-    for term in re.findall(r"[a-zA-Z][a-zA-Z-]{2,}", text.lower()):
+    for term in words(text):
         normalized = term.strip("-")
         if len(normalized) >= 4 and normalized not in QUESTION_STOPWORDS:
             terms.add(normalized)
     return terms
+
+
+def words(text: str) -> set[str]:
+    return {term.strip("-") for term in re.findall(r"[a-zA-Z][a-zA-Z-]{1,}", text.lower())}
