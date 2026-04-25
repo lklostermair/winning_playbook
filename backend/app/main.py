@@ -10,6 +10,7 @@ from app.api.routes_ingest import router as ingest_router
 from app.api.routes_playbooks import router as playbooks_router
 from app.api.routes_reindex import router as reindex_router
 from app.api.routes_updates import router as updates_router
+from app.api.routes_voice import router as voice_router
 from app.core.config import get_settings
 
 
@@ -36,6 +37,7 @@ def create_app() -> FastAPI:
     app.include_router(updates_router)
     app.include_router(reindex_router)
     app.include_router(ingest_router)
+    app.include_router(voice_router)
     return app
 
 

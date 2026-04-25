@@ -38,6 +38,16 @@ class Settings(BaseSettings):
         default=0.1,
         alias="GEMINI_EMBEDDING_REQUEST_DELAY_SECONDS",
     )
+    voice_whisper_model: str = Field(default="small", alias="VOICE_WHISPER_MODEL")
+    voice_whisper_device: str = Field(default="cpu", alias="VOICE_WHISPER_DEVICE")
+    voice_whisper_compute_type: str = Field(default="int8", alias="VOICE_WHISPER_COMPUTE_TYPE")
+    voice_upload_max_bytes: int = Field(default=15_000_000, alias="VOICE_UPLOAD_MAX_BYTES")
+    voice_tts_voice: str = Field(default="bf_isabella", alias="VOICE_TTS_VOICE")
+    voice_tts_speed: float = Field(default=1.2, alias="VOICE_TTS_SPEED")
+    voice_tts_cache_dir: Path = Field(
+        default=Path.home() / ".cache" / "kokoro-onnx",
+        alias="VOICE_TTS_CACHE_DIR",
+    )
 
     def ensure_runtime_directories(self) -> None:
         for directory in (self.vault_dir, self.data_dir, self.chroma_dir):
