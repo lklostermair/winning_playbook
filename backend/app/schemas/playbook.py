@@ -42,3 +42,9 @@ class RuleTemplate(BaseModel):
     suggested_language: str | None = None
     status: RuleStatus = "draft"
     source_documents: list[SourceDocument] = Field(default_factory=list)
+
+
+class RuleDetailResponse(BaseModel):
+    playbook_id: str
+    rule: RuleTemplate
+    markdown: str
