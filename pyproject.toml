@@ -1,0 +1,13 @@
+[project]
+name = "winning-playbook"
+version = "0.1.0"
+description = "Living Legal Playbook Engine hackathon MVP"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.115.6",
+    "pydantic-settings==2.7.1",
+    "uvicorn[standard]==0.34.0",
+]
+
+[tool.uv]
+package = false

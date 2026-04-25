@@ -1,1 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.uv-cache/
+
+# Env
 .env
+
+# Chroma DB
+chroma/*
+!chroma/.gitkeep
+
+# Data
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Vault runtime files
+vault/**/.obsidian/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
