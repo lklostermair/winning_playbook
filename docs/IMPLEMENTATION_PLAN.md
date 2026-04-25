@@ -51,8 +51,8 @@ The mission is to make the playbook itself come alive. Contracts can provide evi
 | WP2 Vault Service | Done | Markdown/JSON vault read/write/list/update plus rule detail endpoint. |
 | WP3 Adaptive Playbook Extraction | Done | `.docx`, `.pdf`, `.xlsx`, `.csv`; Gemini via Vertex ADC with heuristic fallback; real `vault/nda` seeded by Gemini. |
 | WP4 Git Metadata Service | Done | Git history metadata exposed on rule APIs and ask source stubs; commit helper ready for WP7. |
-| WP5 Retrieval And Indexing | Next | Build Chroma index from vault Markdown sections using Gemini embeddings and wire `/reindex`. |
-| WP6 Ask Playbook | Pending | Replace ask stub with retrieval-grounded Gemini answer flow and confidence heuristic. |
+| WP5 Retrieval And Indexing | Done | Chroma index from vault Markdown sections using batched/cached Gemini embeddings and real `/reindex`. |
+| WP6 Ask Playbook | Done | Retrieval-grounded Gemini answer flow, confidence heuristic, sources, and low-evidence refusal. |
 | WP7 Proposed Update Workflow | Pending | Apply approved changes to vault, commit through Git service, then reindex. |
 | WP8 Frontend Integration | Pending | Lovable React UI against stable backend contracts. |
 | WP9 Ingestion MVP | Partially covered | Adaptive extraction exists; upload/ingest API workflow still pending. |
@@ -249,6 +249,8 @@ Current critical path before WP5:
 - Deleting Chroma and reindexing restores search behavior.
 
 ### WP6: Ask Playbook
+
+**Status:** Complete
 
 **Owner lane:** Backend/RAG, Frontend Core
 
