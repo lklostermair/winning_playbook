@@ -1,0 +1,25 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "signatures-and-authority-to-sign",
+  "topic": "Signatures and Authority to Sign",
+  "standard_position": "Both parties sign through duly authorized representatives with verified signing authority. For our organization, follow internal policies on required number of signatories and authority levels",
+  "fallback_positions": [
+    "Accept electronic signatures via established e-signature platforms, provided the counterparty confirms the signatory's authority in writing",
+    "Accept a single signatory from the counterparty if they provide evidence of signing authority (e.g., power of attorney, board resolution)"
+  ],
+  "red_line": "Do not execute any NDA where the counterparty's signatory authority cannot be verified",
+  "decision_logic": "An NDA is only binding if signed by individuals who are legally authorized to represent their respective organizations. If a signatory lacks authority, the NDA may be invalid, leaving disclosed information unprotected. Counterparties sometimes present NDAs signed by individuals whose authority is unclear (e.g., a project manager rather than a corporate officer). Additionally, our own internal signing authority rules must be followed.",
+  "escalation_logic": "If there is any doubt about the counterparty's signatory authority, escalate before execution.",
+  "rationale": "An NDA is only binding if signed by individuals who are legally authorized to represent their respective organizations. If a signatory lacks authority, the NDA may be invalid, leaving disclosed information unprotected.",
+  "negotiation_tips": [
+    "Counterparties sometimes present NDAs signed by individuals whose authority is unclear (e.g., a project manager rather than a corporate officer). Additionally, our own internal signing authority rules must be followed."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "data/examples/Sample NDA Playbook.docx",
+      "location": "Clause 14"
+    }
+  ]
+}

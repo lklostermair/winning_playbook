@@ -5,7 +5,11 @@ description = "Living Legal Playbook Engine hackathon MVP"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi==0.115.6",
+    "google-genai==1.11.0",
+    "httpx==0.28.1",
+    "openpyxl==3.1.5",
     "pydantic-settings==2.7.1",
+    "pypdf==5.1.0",
     "uvicorn[standard]==0.34.0",
 ]
 

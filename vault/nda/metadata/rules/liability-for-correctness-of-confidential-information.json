@@ -1,0 +1,25 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "liability-for-correctness-of-confidential-information",
+  "topic": "Liability for Correctness of Confidential Information",
+  "standard_position": "Information provided \"AS IS\" — no warranty of accuracy, completeness, or fitness for purpose. No liability for damages arising from use of or reliance on the information",
+  "fallback_positions": [
+    "No warranty of accuracy, but the disclosing party represents that it has disclosed information in good faith",
+    "Limited warranty that the disclosing party is not aware of any material inaccuracies, but with no liability for unintentional errors"
+  ],
+  "red_line": "Reject any clause requiring a full warranty of accuracy with associated liability — this is inappropriate for an NDA",
+  "decision_logic": "An NDA typically facilitates a preliminary assessment of a potential business relationship. It is not the appropriate vehicle for warranties about the accuracy of shared information. However, if one party provides materially incorrect information, the other party could make poor business decisions based on it. Some NDAs include warranties that all disclosed information is accurate, complete, and current. This creates significant liability exposure for the disclosing party, particularly at an early-stage evaluation where information may be preliminary or incomplete.",
+  "escalation_logic": "If the counterparty insists on accuracy warranties backed by indemnification, escalate.",
+  "rationale": "An NDA typically facilitates a preliminary assessment of a potential business relationship. It is not the appropriate vehicle for warranties about the accuracy of shared information. However, if one party provides materially incorrect information, the other party could make poor business decisions based on it.",
+  "negotiation_tips": [
+    "Some NDAs include warranties that all disclosed information is accurate, complete, and current. This creates significant liability exposure for the disclosing party, particularly at an early-stage evaluation where information may be preliminary or incomplete."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "data/examples/Sample NDA Playbook.docx",
+      "location": "Clause 6"
+    }
+  ]
+}

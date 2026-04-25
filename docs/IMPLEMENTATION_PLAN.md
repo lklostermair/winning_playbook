@@ -145,24 +145,25 @@ WP9 ingestion MVP and WP10 demo hardening should happen after the core ask/updat
 - Markdown remains human-readable and Git-trackable.
 - A lawyer can inspect the generated Markdown and verify how the system interpreted the original playbook.
 
-### WP3: Seed NDA Playbook
+### WP3: Adaptive Playbook Extraction
 
 **Owner lane:** Backend/RAG
 
 **Scope**
 
 - Implement `scripts/seed_demo_data.py`.
-- Parse `data/examples/Sample NDA Playbook.csv.xlsx` into 14 structured rules.
-- Optionally enrich with useful narrative text from `Sample NDA Playbook.docx`.
-- Preserve source references so the generated playbook can be audited back to Word/Excel inputs.
+- Accept Word, PDF, Excel, or CSV playbook sources.
+- Extract the rule count adaptively from source content instead of assuming a fixed number of clauses.
+- Use hybrid extraction: model-assisted extraction through Gemini on Vertex AI with ADC when Google Cloud is configured, with local heuristics as a runnable fallback.
+- Preserve source references so the generated playbook can be audited back to the input files.
 - Create `vault/nda/rules/*.md` and `vault/nda/metadata/playbook.json`.
 
 **Acceptance Criteria**
 
-- Running the seed script creates exactly 14 NDA rules.
-- Liability/unlimited-liability content is present and queryable.
-- Source document metadata points back to the XLSX row/sheet.
-- Re-running the seed script is deterministic for demo reset.
+- Running the seed script creates one vault rule per extracted playbook topic.
+- The extractor handles `.docx`, `.pdf`, `.xlsx`, and `.csv` inputs.
+- Source document metadata points back to the input file and location.
+- Re-running the seed script refreshes generated rules for demo reset without hand-editing vault files.
 
 ### WP4: Git Metadata Service
 

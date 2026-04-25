@@ -22,7 +22,10 @@ class Settings(BaseSettings):
         default=None,
         alias="GOOGLE_APPLICATION_CREDENTIALS",
     )
-    gemini_model: str = Field(default="gemini-1.5-pro", alias="GEMINI_MODEL")
+    google_cloud_project: str | None = Field(default=None, alias="GOOGLE_CLOUD_PROJECT")
+    google_cloud_location: str = Field(default="europe-west4", alias="GOOGLE_CLOUD_LOCATION")
+    gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
+    gemini_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_MODEL")
     openai_embedding_model: str = Field(
         default="text-embedding-3-small",
         alias="OPENAI_EMBEDDING_MODEL",

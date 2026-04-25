@@ -1,0 +1,25 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "contractual-penalty-for-breach-of-confidentiality",
+  "topic": "Contractual Penalty for Breach of Confidentiality",
+  "standard_position": "No contractual penalty clause. Remedies should be limited to actual damages proven by the aggrieved party",
+  "fallback_positions": [
+    "Accept a penalty clause only if: (a) the burden of proof for the breach remains with the disclosing party, (b) the penalty amount is commercially reasonable and proportionate, and (c) the penalty is the sole monetary remedy (not cumulative with damages)",
+    "Accept a penalty clause with a cap that is proportionate to the value of the engagement, and only for willful or grossly negligent breaches"
+  ],
+  "red_line": "Reject any uncapped penalty, any penalty that applies regardless of fault, or any penalty that is cumulative with unlimited damages",
+  "decision_logic": "Some NDAs impose a fixed monetary penalty for any breach of confidentiality, regardless of whether actual damages occurred. Such penalties can be disproportionate and create significant financial risk, especially when the definition of \"breach\" is broad. Contractual penalty clauses are more common in unilateral NDAs. They may specify a fixed sum per breach (or per incident), sometimes in very large amounts, and may be cumulative with other remedies (damages, injunctive relief).",
+  "escalation_logic": "Any contractual penalty clause should be reviewed by senior legal before acceptance.",
+  "rationale": "Some NDAs impose a fixed monetary penalty for any breach of confidentiality, regardless of whether actual damages occurred. Such penalties can be disproportionate and create significant financial risk, especially when the definition of \"breach\" is broad.",
+  "negotiation_tips": [
+    "Contractual penalty clauses are more common in unilateral NDAs. They may specify a fixed sum per breach (or per incident), sometimes in very large amounts, and may be cumulative with other remedies (damages, injunctive relief)."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "data/examples/Sample NDA Playbook.docx",
+      "location": "Clause 7"
+    }
+  ]
+}

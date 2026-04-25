@@ -1,0 +1,25 @@
+{
+  "playbook_id": "nda",
+  "rule_id": "non-solicitation-of-employees",
+  "topic": "Non-Solicitation of Employees",
+  "standard_position": "No non-solicitation clause in the NDA. Employment matters should not be governed by a confidentiality agreement",
+  "fallback_positions": [
+    "Accept a non-solicitation clause limited to: (a) direct, active solicitation only (not unsolicited applications); (b) employees directly involved in the Purpose; (c) duration of the NDA term only",
+    "Accept a broader non-solicitation clause provided there is no contractual penalty and the clause does not apply to employees who apply on their own initiative"
+  ],
+  "red_line": "Reject any non-solicitation clause that applies to unsolicited applications, covers all employees regardless of involvement, or includes a contractual penalty",
+  "decision_logic": "Some NDAs include clauses prohibiting one or both parties from soliciting or hiring the other party's employees. While the intent may be reasonable, broadly worded non-solicitation clauses can create liability even when an employee applies on their own initiative or is hired by a department unaware of the NDA. Non-solicitation clauses that are broadly worded (covering all employees, not just those involved in the Purpose), that extend for long periods, or that are accompanied by contractual penalties.",
+  "escalation_logic": "Any non-solicitation clause with a penalty should be escalated.",
+  "rationale": "Some NDAs include clauses prohibiting one or both parties from soliciting or hiring the other party's employees. While the intent may be reasonable, broadly worded non-solicitation clauses can create liability even when an employee applies on their own initiative or is hired by a department unaware of the NDA.",
+  "negotiation_tips": [
+    "Non-solicitation clauses that are broadly worded (covering all employees, not just those involved in the Purpose), that extend for long periods, or that are accompanied by contractual penalties."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "data/examples/Sample NDA Playbook.docx",
+      "location": "Clause 10"
+    }
+  ]
+}

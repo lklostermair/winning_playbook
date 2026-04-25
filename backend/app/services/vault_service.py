@@ -44,7 +44,21 @@ class VaultService:
         self.proposed_updates_dir(playbook.playbook_id).mkdir(parents=True, exist_ok=True)
         manifest_path = self.playbook_manifest_path(playbook.playbook_id)
         if not manifest_path.exists():
-            self._write_json(manifest_path, playbook.model_dump(mode="json"))
+            self.write_playbook_manifest(playbook)
+
+    def write_playbook_manifest(self, playbook: PlaybookSummary) -> None:
+        self.metadata_dir(playbook.playbook_id).mkdir(parents=True, exist_ok=True)
+        self._write_json(self.playbook_manifest_path(playbook.playbook_id), playbook.model_dump(mode="json"))
+
+    def clear_rules(self, playbook_id: str) -> None:
+        for directory, pattern in (
+            (self.rules_dir(playbook_id), "*.md"),
+            (self.rule_metadata_dir(playbook_id), "*.json"),
+        ):
+            if not directory.exists():
+                continue
+            for path in directory.glob(pattern):
+                path.unlink()
 
     def list_playbooks(self) -> list[PlaybookSummary]:
         playbooks: list[PlaybookSummary] = []
