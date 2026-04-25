@@ -40,7 +40,8 @@ export type ChatMessage = {
 export function VaultGraph({
   playbooks,
   selectedPlaybookId,
-  rules,
+  selectedPlaybookIds,
+  allRules,
   selectedRuleId,
   citedRuleIds,
   onSelectPlaybook,
@@ -48,11 +49,12 @@ export function VaultGraph({
 }: {
   playbooks: PlaybookSummary[];
   selectedPlaybookId: string;
-  rules: RuleSummary[];
+  selectedPlaybookIds: string[];
+  allRules: Record<string, RuleSummary[]>;
   selectedRuleId: string | null;
   citedRuleIds: Set<string>;
   onSelectPlaybook: (playbookId: string) => void;
-  onSelectRule: (ruleId: string) => void;
+  onSelectRule: (ruleId: string, playbookId: string) => void;
 }) {
   const [hoveredGraphNode, setHoveredGraphNode] = useState<{
     label: string;
@@ -62,6 +64,8 @@ export function VaultGraph({
   const [graphReady, setGraphReady] = useState(false);
   const [graphSettled, setGraphSettled] = useState(false);
   const vault = { x: 380, y: 125 };
+  const baseViewBox = { width: 760, height: 250 };
+  const baseAspectRatio = baseViewBox.width / baseViewBox.height;
   const playbookRadius = 96;
   const playbookNodes = playbooks.map((playbook, index) => ({
     playbook,
@@ -78,25 +82,63 @@ export function VaultGraph({
     };
   const highlightedRuleIds = new Set(citedRuleIds);
   if (selectedRuleId) highlightedRuleIds.add(selectedRuleId);
-  const visibleRules = rules.slice(0, 8);
+  const selectedPlaybookIdSet = new Set(selectedPlaybookIds);
   const topicRadius = 92;
-  const topicBaseAngle = selectedPlaybookNode.x >= vault.x ? 0 : Math.PI;
   const topicArc = Math.PI * 0.78;
-  const topicNodes = visibleRules.map((rule, index) => {
-    const offset =
-      visibleRules.length <= 1
-        ? 0
-        : -topicArc / 2 + (topicArc * index) / Math.max(visibleRules.length - 1, 1);
-    const angle = topicBaseAngle + offset;
-    return {
-      rule,
-      x: selectedPlaybookNode.x + Math.cos(angle) * topicRadius,
-      y: selectedPlaybookNode.y + Math.sin(angle) * topicRadius,
-    };
+  const maxRulesPerPlaybook = 6;
+  const allTopicNodes = playbookNodes.flatMap((playbookNode) => {
+    const playbookRules = (allRules[playbookNode.playbook.playbook_id] ?? []).slice(
+      0,
+      maxRulesPerPlaybook,
+    );
+    const angleFromVault = Math.atan2(playbookNode.y - vault.y, playbookNode.x - vault.x);
+    return playbookRules.map((rule, index) => {
+      const offset =
+        playbookRules.length <= 1
+          ? 0
+          : -topicArc / 2 + (topicArc * index) / Math.max(playbookRules.length - 1, 1);
+      const angle = angleFromVault + offset;
+      return {
+        rule,
+        playbookId: playbookNode.playbook.playbook_id,
+        playbookNode,
+        x: playbookNode.x + Math.cos(angle) * topicRadius,
+        y: playbookNode.y + Math.sin(angle) * topicRadius,
+      };
+    });
   });
-  const hasCitedTopic = topicNodes.some((node) => citedRuleIds.has(node.rule.rule_id));
-  const hasHighlightedTopic = topicNodes.some((node) => highlightedRuleIds.has(node.rule.rule_id));
-  const graphSignature = `${selectedPlaybookId}:${playbookNodes.map((node) => node.playbook.playbook_id).join(",")}:${visibleRules.map((rule) => rule.rule_id).join(",")}`;
+  const totalRuleCount = Object.values(allRules).reduce((sum, r) => sum + r.length, 0);
+  const hasCitedTopic = allTopicNodes.some((node) => citedRuleIds.has(node.rule.rule_id));
+  const hasHighlightedTopic = allTopicNodes.some((node) =>
+    highlightedRuleIds.has(node.rule.rule_id),
+  );
+  const graphPoints = [
+    ...playbookNodes.map((node) => ({ x: node.x, y: node.y, padding: 30 })),
+    ...allTopicNodes.map((node) => ({ x: node.x, y: node.y, padding: 28 })),
+  ];
+  const requiredHalfWidth = Math.max(
+    baseViewBox.width / 2,
+    ...graphPoints.map((point) => Math.abs(point.x - vault.x) + point.padding),
+  );
+  const requiredHalfHeight = Math.max(
+    baseViewBox.height / 2,
+    ...graphPoints.map((point) => Math.abs(point.y - vault.y) + point.padding),
+  );
+  const viewBoxHalfWidth = Math.max(requiredHalfWidth, requiredHalfHeight * baseAspectRatio);
+  const viewBoxHalfHeight = viewBoxHalfWidth / baseAspectRatio;
+  const graphViewBox = {
+    minX: vault.x - viewBoxHalfWidth,
+    minY: vault.y - viewBoxHalfHeight,
+    width: viewBoxHalfWidth * 2,
+    height: viewBoxHalfHeight * 2,
+  };
+  const vaultNodeScale = Math.max(0.72, Math.min(1, baseViewBox.width / graphViewBox.width));
+  const graphSignature = `${selectedPlaybookId}:${selectedPlaybookIds.join(",")}:${playbookNodes.map((node) => node.playbook.playbook_id).join(",")}:${Object.keys(
+    allRules,
+  )
+    .sort()
+    .map((id) => (allRules[id] ?? []).map((r) => r.rule_id).join(","))
+    .join("|")}`;
 
   useEffect(() => {
     setGraphReady(false);
@@ -118,14 +160,15 @@ export function VaultGraph({
     <section className="mx-auto h-[24vh] min-h-[180px] w-full max-w-5xl border-b border-border pb-3">
       <div className="relative h-full overflow-hidden rounded-lg bg-background">
         <svg
-          viewBox="0 0 760 250"
+          viewBox={`${graphViewBox.minX} ${graphViewBox.minY} ${graphViewBox.width} ${graphViewBox.height}`}
           role="img"
           aria-label="Playbook vault graph"
           className="h-full w-full"
+          overflow="visible"
         >
           {playbookNodes.map((node, index) => {
-            const selectedBranch =
-              selectedPlaybookId === node.playbook.playbook_id && hasHighlightedTopic;
+            const activePlaybook = selectedPlaybookIdSet.has(node.playbook.playbook_id);
+            const selectedBranch = activePlaybook;
             const lineLength = Math.hypot(node.x - vault.x, node.y - vault.y);
 
             return (
@@ -137,13 +180,8 @@ export function VaultGraph({
                 y2={node.y}
                 className={`${selectedBranch ? "stroke-graph-selected" : "stroke-graph-link"} transition-[opacity,stroke-dashoffset,stroke-width] duration-700 ease-out`}
                 opacity={graphReady ? (selectedBranch ? 1 : 0.62) : 0}
-                strokeWidth={
-                  selectedBranch
-                    ? 2.4
-                    : selectedPlaybookId === node.playbook.playbook_id
-                      ? 1.3
-                      : 0.8
-                }
+                strokeWidth={selectedBranch ? 2.4 : activePlaybook ? 1.3 : 0.8}
+                vectorEffect="non-scaling-stroke"
                 strokeLinecap="round"
                 strokeDasharray={lineLength}
                 strokeDashoffset={graphReady ? 0 : lineLength}
@@ -151,23 +189,24 @@ export function VaultGraph({
               />
             );
           })}
-          {topicNodes.map((node, index) => {
+          {allTopicNodes.map((node, index) => {
             const highlighted = highlightedRuleIds.has(node.rule.rule_id);
             const lineLength = Math.hypot(
-              node.x - selectedPlaybookNode.x,
-              node.y - selectedPlaybookNode.y,
+              node.x - node.playbookNode.x,
+              node.y - node.playbookNode.y,
             );
 
             return (
               <line
                 key={`topic-link-${node.rule.rule_id}`}
-                x1={selectedPlaybookNode.x}
-                y1={selectedPlaybookNode.y}
+                x1={node.playbookNode.x}
+                y1={node.playbookNode.y}
                 x2={node.x}
                 y2={node.y}
                 className={`${highlighted ? "stroke-graph-selected" : "stroke-graph-link"} transition-[opacity,stroke-dashoffset,stroke-width] duration-700 ease-out`}
                 opacity={graphReady ? (highlighted ? 1 : 0.62) : 0}
                 strokeWidth={highlighted ? 2.4 : selectedRuleId === node.rule.rule_id ? 1.3 : 0.8}
+                vectorEffect="non-scaling-stroke"
                 strokeLinecap="round"
                 strokeDasharray={lineLength}
                 strokeDashoffset={graphReady ? 0 : lineLength}
@@ -184,13 +223,14 @@ export function VaultGraph({
             <circle
               cx={vault.x}
               cy={vault.y}
-              r={hasHighlightedTopic ? 36 : 30}
+              r={(hasHighlightedTopic ? 36 : 30) * vaultNodeScale}
               className="fill-graph-selected/10"
             />
-            <circle cx={vault.x} cy={vault.y} r={21} className="fill-graph-root" />
+            <circle cx={vault.x} cy={vault.y} r={21 * vaultNodeScale} className="fill-graph-root" />
           </g>
           {playbookNodes.map((node, index) => {
             const selected = selectedPlaybookId === node.playbook.playbook_id;
+            const activePlaybook = selectedPlaybookIdSet.has(node.playbook.playbook_id);
             return (
               <g
                 key={node.playbook.playbook_id}
@@ -215,25 +255,25 @@ export function VaultGraph({
                 <circle
                   cx={node.x}
                   cy={node.y}
-                  r={selected ? 24 : 20}
+                  r={selected ? 24 : activePlaybook ? 22 : 20}
                   className="fill-graph-selected/0 transition-colors duration-200 hover:fill-graph-selected/10"
                 />
                 <circle
                   cx={node.x}
                   cy={node.y}
-                  r={selected ? 18 : 14}
-                  className={selected ? "fill-graph-selected/10" : "fill-transparent"}
+                  r={selected ? 18 : activePlaybook ? 16 : 14}
+                  className={activePlaybook ? "fill-graph-selected/10" : "fill-transparent"}
                 />
                 <circle
                   cx={node.x}
                   cy={node.y}
-                  r={selected ? 10 : 8}
-                  className={selected ? "fill-graph-selected" : "fill-graph-folder"}
+                  r={selected ? 10 : activePlaybook ? 9 : 8}
+                  className={activePlaybook ? "fill-graph-selected" : "fill-graph-folder"}
                 />
               </g>
             );
           })}
-          {topicNodes.map((node, index) => {
+          {allTopicNodes.map((node, index) => {
             const selected = selectedRuleId === node.rule.rule_id;
             const cited = citedRuleIds.has(node.rule.rule_id);
             return (
@@ -241,13 +281,14 @@ export function VaultGraph({
                 key={node.rule.rule_id}
                 role="button"
                 tabIndex={0}
-                onClick={() => onSelectRule(node.rule.rule_id)}
+                onClick={() => onSelectRule(node.rule.rule_id, node.playbookId)}
                 onMouseEnter={() =>
                   setHoveredGraphNode({ label: node.rule.topic, x: node.x, y: node.y })
                 }
                 onMouseLeave={() => setHoveredGraphNode(null)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") onSelectRule(node.rule.rule_id);
+                  if (event.key === "Enter" || event.key === " ")
+                    onSelectRule(node.rule.rule_id, node.playbookId);
                 }}
                 className={`cursor-pointer outline-none transition-all duration-500 ease-out [transform-box:fill-box] [transform-origin:center] hover:scale-125 ${
                   graphReady ? "scale-100 opacity-100" : "scale-50 opacity-0"
@@ -285,7 +326,7 @@ export function VaultGraph({
             </span>
             <span className="h-2.5 w-2.5 rounded-full bg-graph-file" />
             <span>
-              {rules.length} topic{rules.length === 1 ? "" : "s"}
+              {totalRuleCount} topic{totalRuleCount === 1 ? "" : "s"}
             </span>
             {hasCitedTopic && (
               <>
@@ -299,8 +340,8 @@ export function VaultGraph({
           <div
             className="pointer-events-none absolute z-10 max-w-52 -translate-x-1/2 -translate-y-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground shadow-sm"
             style={{
-              left: `${(hoveredGraphNode.x / 760) * 100}%`,
-              top: `${(hoveredGraphNode.y / 250) * 100}%`,
+              left: `${((hoveredGraphNode.x - graphViewBox.minX) / graphViewBox.width) * 100}%`,
+              top: `${((hoveredGraphNode.y - graphViewBox.minY) / graphViewBox.height) * 100}%`,
             }}
           >
             {hoveredGraphNode.label}

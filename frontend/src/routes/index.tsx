@@ -143,7 +143,7 @@ function LivingPlaybookApp() {
   const [playbooks, setPlaybooks] = useState<PlaybookSummary[]>([]);
   const [selectedPlaybookId, setSelectedPlaybookId] = useState("nda");
   const [selectedPlaybookIds, setSelectedPlaybookIds] = useState<string[]>(["nda"]);
-  const [rules, setRules] = useState<RuleSummary[]>([]);
+  const [allRules, setAllRules] = useState<Record<string, RuleSummary[]>>({});
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
   const [selectedRule, setSelectedRule] = useState<RuleDetail | null>(null);
   const [ingests, setIngests] = useState<IngestDraftSummary[]>([]);
@@ -201,9 +201,8 @@ function LivingPlaybookApp() {
         await getHealth();
         setApiStatus("ok");
         void refreshGitIdentity();
-        const [playbookList, ruleList, ingestList] = await Promise.all([
+        const [playbookList, ingestList] = await Promise.all([
           getPlaybooks(),
-          getRules(playbookId),
           getIngests(playbookId),
         ]);
         setPlaybooks(playbookList);
@@ -214,8 +213,14 @@ function LivingPlaybookApp() {
           if (availableIds.has(playbookId)) return [playbookId];
           return playbookList[0] ? [playbookList[0].playbook_id] : [playbookId];
         });
-        setRules(ruleList);
         setIngests(ingestList);
+        const ruleEntries = await Promise.all(
+          playbookList.map(async (playbook) => {
+            const ruleList = await getRules(playbook.playbook_id);
+            return [playbook.playbook_id, ruleList] as [string, RuleSummary[]];
+          }),
+        );
+        setAllRules(Object.fromEntries(ruleEntries));
       } catch (error) {
         setApiStatus("down");
         toast.error(error instanceof Error ? error.message : "Backend is not reachable.");
@@ -851,13 +856,14 @@ function LivingPlaybookApp() {
               <VaultGraph
                 playbooks={playbooks}
                 selectedPlaybookId={selectedPlaybookId}
-                rules={rules}
+                selectedPlaybookIds={selectedPlaybookIds}
+                allRules={allRules}
                 selectedRuleId={selectedRuleId}
                 citedRuleIds={citedRuleIds}
                 onSelectPlaybook={(playbookId) => {
                   openPlaybook(playbookId);
                 }}
-                onSelectRule={(ruleId) => openRule(ruleId)}
+                onSelectRule={(ruleId, playbookId) => openRule(ruleId, playbookId)}
               />
             </div>
 
