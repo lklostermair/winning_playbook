@@ -1,0 +1,24 @@
+{
+  "playbook_id": "lease",
+  "rule_id": "reinstatement-and-restoration",
+  "topic": "Reinstatement and Restoration",
+  "standard_position": "Tenant is not required to remove standard office improvements (glass walls, cabling, lighting) at the end of the term, provided they were installed with consent.",
+  "fallback_positions": [
+    "Tenant only removes 'highly unusual' installations (e.g., lab fume hoods) while leaving standard partitions and office infrastructure."
+  ],
+  "red_line": "Mandatory full professional renovation of the space regardless of its actual condition upon exit.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "Exit costs can be enormous. Removing custom meeting rooms and glass walls can cost thousands. The lease must protect the startup from these unnecessary costs.",
+  "negotiation_tips": [
+    "Requirements to return the space to 'shell and core' condition even if the landlord originally approved the improvements."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/lease/draft_ingest/ingest_20260426075523_96d864de/sources/Lease_Playbook.docx",
+      "location": "Section 5"
+    }
+  ]
+}

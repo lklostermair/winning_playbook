@@ -1,0 +1,24 @@
+{
+  "playbook_id": "lease",
+  "rule_id": "liability-insurance-and-subrogation",
+  "topic": "Liability, Insurance, and Subrogation",
+  "standard_position": "Liability is capped at insurance limits; mutual waiver of subrogation (insurance companies can't sue after paying claims).",
+  "fallback_positions": [
+    "Tenant only liable for repairs exceeding normal wear and tear."
+  ],
+  "red_line": "Accepting liability for Landlord's 'loss of profit' or business interruption if the building is damaged.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "Protects against building failure and indirect losses. Essential that insurance companies don't sue the startup for building-wide events.",
+  "negotiation_tips": [
+    "Clauses requiring the startup to indemnify the Landlord even for the Landlord’s own negligence."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/lease/draft_ingest/ingest_20260426075523_96d864de/sources/Lease_Playbook.docx",
+      "location": "Section 6"
+    }
+  ]
+}

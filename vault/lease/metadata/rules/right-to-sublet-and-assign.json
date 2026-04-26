@@ -1,0 +1,24 @@
+{
+  "playbook_id": "lease",
+  "rule_id": "right-to-sublet-and-assign",
+  "topic": "Right to Sublet and Assign",
+  "standard_position": "Tenant has the right to sublet part or all of the premises to any affiliated company without consent, and to third parties with Landlord consent (not to be unreasonably withheld).",
+  "fallback_positions": [
+    "Subletting is permitted to third parties provided the Tenant remains fully liable for the rent payments."
+  ],
+  "red_line": "Landlord has the right to 'recapture' the space (terminate the lease) if the Tenant asks for permission to sublet.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "The ultimate 'escape hatch.' Startups raising huge rounds need to move; those facing cutbacks need to sublet. This flexibility is vital for survival.",
+  "negotiation_tips": [
+    "Prohibitions on subletting even to parent or subsidiary companies."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/lease/draft_ingest/ingest_20260426075523_96d864de/sources/Lease_Playbook.docx",
+      "location": "Section 4"
+    }
+  ]
+}

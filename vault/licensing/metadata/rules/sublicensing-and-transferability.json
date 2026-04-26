@@ -1,0 +1,24 @@
+{
+  "playbook_id": "licensing",
+  "rule_id": "sublicensing-and-transferability",
+  "topic": "Sublicensing and Transferability",
+  "standard_position": "Licensee has the unrestricted right to sublicense to any affiliated company (subsidiary/parent) and the right to transfer the license in its entirety to an acquirer during a merger or acquisition event without further consent.",
+  "fallback_positions": [
+    "Sublicensing is permitted subject to the Licensor's prior written consent, which must not be unreasonably withheld, conditioned, or delayed, with a response timeline of 10 business days."
+  ],
+  "red_line": "A total prohibition on sublicensing or a clause that triggers an automatic termination of the entire agreement upon any 'change of control' or organizational restructuring of the startup.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "The ability to scale through affiliates or joint ventures is essential. If sublicensing is restricted, the startup’s ability to pivot or integrate the IP into broader partner ecosystems is severely hampered, which negatively impacts valuation during exit scenarios.",
+  "negotiation_tips": [
+    "Clauses requiring written consent for every specific sublicense, often coupled with the Licensor’s right to withhold approval 'at their sole and absolute discretion,' which creates an operational bottleneck."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/licensing/draft_ingest/ingest_20260426075212_a01c807c/sources/Licensing_Playbook.docx",
+      "location": "Section 2: Sublicensing and Transferability"
+    }
+  ]
+}

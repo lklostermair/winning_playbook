@@ -1,0 +1,24 @@
+{
+  "playbook_id": "softwarepurchase",
+  "rule_id": "warranty-and-performance",
+  "topic": "Warranty and Performance",
+  "standard_position": "12-month performance warranty against explicitly defined functional specifications. The exclusive remedy is limited to 'repair or replace' functionality to mitigate cash-intensive settlement risks.",
+  "fallback_positions": [
+    "A 90-day warranty coupled with a robust, commercially standard Support & Maintenance SLA (Service Level Agreement) to manage customer expectations over the long term."
+  ],
+  "red_line": "A total exclusion of all warranties (e.g., 'Sold As-Is') in a high-value B2B purchase, as this lack of quality guarantee destroys customer trust and market position.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "Product reliability and stability define the brand’s market reputation. Startups must guarantee functionality but avoid 'perfection' clauses that are technically impossible to fulfill.",
+  "negotiation_tips": [
+    "Ambiguous promises like 'the software will be error-free,' which is an impossible legal standard that opens the company to endless frivolous breach-of-contract lawsuits."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/softwarepurchase/draft_ingest/ingest_20260426074755_b92b953a/sources/Software_Purchase_Playbook.docx",
+      "location": "Software Purchase Playbook"
+    }
+  ]
+}

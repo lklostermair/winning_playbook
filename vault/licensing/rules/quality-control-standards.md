@@ -1,0 +1,32 @@
+# Quality Control Standards
+
+## Standard Position
+Licensee warrants compliance with agreed-upon objective industry standards. Licensor’s right to audit/inspect is limited to once per annum, with a 'deemed approved' provision if no objection is raised within 10 days.
+
+## Fallback Position
+- Prior approval is mandatory only for 'materially new' product categories or major rebranding campaigns, ensuring standard ongoing business operations proceed without constant oversight.
+
+## Red Line
+Licensor retains a subjective veto right based on 'brand perception' or internal preference rather than objective quality failure, effectively allowing the Licensor to block revenue streams at will.
+
+## Decision Logic
+_Not specified._
+
+## Escalation Logic
+_Not specified._
+
+## Rationale
+The Licensor must control quality to protect trademark validity, but for the startup, these controls must not result in 'naked licensing' accusations or paralyzing approval workflows that prevent timely product marketing and iterative development.
+
+## Negotiation Tips
+- Burdensome approval workflows where the Licensor demands sign-off on every marketing asset, color palette, or product update, which can destroy the startup's time-to-market speed.
+
+## Suggested Language
+_Not specified._
+
+## Metadata
+- Playbook: licensing
+- Rule ID: quality-control-standards
+- Status: approved
+- Source Documents:
+  - vault/licensing/draft_ingest/ingest_20260426075212_a01c807c/sources/Licensing_Playbook.docx (Section 3: Quality Control Standards)

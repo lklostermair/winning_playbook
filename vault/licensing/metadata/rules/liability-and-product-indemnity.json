@@ -1,0 +1,24 @@
+{
+  "playbook_id": "licensing",
+  "rule_id": "liability-and-product-indemnity",
+  "topic": "Liability and Product Indemnity",
+  "standard_position": "The startup provides full product indemnity for claims related to manufacturing/distribution, while the Licensor's liability is strictly capped at the total amount of royalties received under the agreement.",
+  "fallback_positions": [
+    "A balanced mutual indemnification structure where each party is responsible for their own sphere of operational control (e.g., Licensor for IP validity, startup for product/service delivery)."
+  ],
+  "red_line": "The Licensor attempts to shift full responsibility onto the startup for 'loss of profit' or business interruption if the IP is challenged, placing the startup in an uninsurable liability position.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "This clause separates brand ownership risks from the physical/service-based risks of product manufacturing. For a VC, it is critical that the startup is not held liable for things outside its control and vice versa.",
+  "negotiation_tips": [
+    "Clauses that make the Licensor liable for indirect damages or lost profits caused by the startup’s marketing errors, or conversely, make the startup liable for defects in the Licensor’s original IP."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/licensing/draft_ingest/ingest_20260426075212_a01c807c/sources/Licensing_Playbook.docx",
+      "location": "Section 6: Liability and Product Indemnity"
+    }
+  ]
+}

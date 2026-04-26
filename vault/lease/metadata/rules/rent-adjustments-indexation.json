@@ -1,0 +1,24 @@
+{
+  "playbook_id": "lease",
+  "rule_id": "rent-adjustments-indexation",
+  "topic": "Rent Adjustments (Indexation)",
+  "standard_position": "Rent is fixed for the first 3 years. Thereafter, adjustments occur only if the CPI changes by more than 10%, with a strict cap on the maximum annual increase (e.g., 3%).",
+  "fallback_positions": [
+    "Standard 'Step-Up' rent schedule where increases are known in advance, allowing for accurate financial planning throughout the lease term."
+  ],
+  "red_line": "Unlimited annual indexation that occurs even if the market rate for office space in the area is stagnant or falling.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "Inflation can destroy startup runways. Rent increases must be predictable and capped to ensure financial stability.",
+  "negotiation_tips": [
+    "Clauses that increase rent annually by 'CPI + X%' with no 'floor' or maximum annual limit."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/lease/draft_ingest/ingest_20260426075523_96d864de/sources/Lease_Playbook.docx",
+      "location": "Section 2"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "playbook_id": "licensing",
+  "rule_id": "audit-rights-and-transparency",
+  "topic": "Audit Rights and Transparency",
+  "standard_position": "Audits to be conducted solely by an independent third-party auditor, limited to once per calendar year upon 30 days’ advance written notice, and restricted to records directly relating to royalty calculations.",
+  "fallback_positions": [
+    "Audits are permissible only if the royalty reporting reveals a discrepancy of 5% or more compared to previous periods, limiting the frequency and annoyance of constant oversight."
+  ],
+  "red_line": "Licensor internal staff demands direct, unmediated access to the startup’s internal accounting software or trade-secret protected financial data beyond simple revenue reporting.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "Royalty accuracy is fundamental to the financial integrity of the deal. While the Licensor needs to ensure fair payment, audit rights must be balanced to prevent intrusive 'fishing expeditions' into the startup’s broader, unrelated trade secrets.",
+  "negotiation_tips": [
+    "Clauses that allow the Licensor to conduct audits at any time without notice or to demand access to the startup’s entire ERP/Accounting system rather than just the relevant revenue reports."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/licensing/draft_ingest/ingest_20260426075212_a01c807c/sources/Licensing_Playbook.docx",
+      "location": "Section 4: Audit Rights and Transparency"
+    }
+  ]
+}

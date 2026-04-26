@@ -1,0 +1,24 @@
+{
+  "playbook_id": "softwarepurchase",
+  "rule_id": "liability-caps",
+  "topic": "Liability Caps",
+  "standard_position": "Total aggregate liability for all contractual or tort claims is capped at 100% of the fees paid in the preceding 12 months. Explicit, broad exclusion of all indirect, incidental, and consequential damages.",
+  "fallback_positions": [
+    "A 'Super-Cap' structure (e.g., 2-3x fees) specifically reserved for high-risk areas like Data Privacy (GDPR), while keeping a lower, standard cap for general performance issues."
+  ],
+  "red_line": "Unlimited liability for any contractual breach, which effectively creates an unquantifiable financial risk that would block any professional VC investment.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "The #1 priority for startups. If the software causes a crash at a major client, the damage could exceed the startup's valuation. Caps are non-negotiable for VC-backed entities.",
+  "negotiation_tips": [
+    "Contracts that exclude liability caps for 'gross negligence' or 'breach of confidentiality'—terms that can be interpreted aggressively to circumvent total liability protections."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/softwarepurchase/draft_ingest/ingest_20260426074755_b92b953a/sources/Software_Purchase_Playbook.docx",
+      "location": "Software Purchase Playbook"
+    }
+  ]
+}

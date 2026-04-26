@@ -1,0 +1,24 @@
+{
+  "playbook_id": "softwarepurchase",
+  "rule_id": "data-security-liability",
+  "topic": "Data Security Liability",
+  "standard_position": "Liability for data security limited to direct costs of restoration, subject to the overall liability cap, and conditioned upon buyer compliance with security best practices.",
+  "fallback_positions": [
+    "A separate, higher 'Super-Cap' specifically for data breaches, tied to the limits of the startup’s mandatory cyber-insurance policy."
+  ],
+  "red_line": "Accepting liability for third-party hacking or cyber-breaches regardless of the security standards implemented or the buyer’s own operational negligence.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "Essential for SaaS products. Protects against catastrophic breach damages while acknowledging the buyer's role in security.",
+  "negotiation_tips": [
+    "Accepting liability for 'all data loss' without requiring the buyer to follow standard backup protocols or maintain their own secure environment."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/softwarepurchase/draft_ingest/ingest_20260426074755_b92b953a/sources/Software_Purchase_Playbook.docx",
+      "location": "Software Purchase Playbook"
+    }
+  ]
+}
