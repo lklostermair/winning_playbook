@@ -1,0 +1,24 @@
+{
+  "playbook_id": "lease",
+  "rule_id": "permitted-use-and-operational-flexibility",
+  "topic": "Permitted Use and Operational Flexibility",
+  "standard_position": "Premises may be used for 'General office, administrative, and technological business purposes, including associated R&D and storage.'",
+  "fallback_positions": [
+    "Specific use is defined, but the Landlord cannot unreasonably withhold consent for a change in use within the broader tech/service sector."
+  ],
+  "red_line": "Clause that triggers rent increases or lease termination automatically if the startup changes its primary business focus.",
+  "decision_logic": null,
+  "escalation_logic": "If Landlord proposes a Red Line clause or unreasonably withholds consent for a change in use, escalate to legal counsel for review and strategic guidance.",
+  "rationale": "Startups evolve rapidly; office needs change from R&D to showrooms to studios. The lease must not stifle this, or it becomes a liability for growth.",
+  "negotiation_tips": [
+    "Restrictive use clauses like 'Only for the purpose of a law firm' or 'Software coding only,' which kill the startup's ability to pivot its business model."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/lease/draft_ingest/ingest_20260426075523_96d864de/sources/Lease_Playbook.docx",
+      "location": "Section 1"
+    }
+  ]
+}
