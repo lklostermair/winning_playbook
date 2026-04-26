@@ -2,7 +2,7 @@
   "update_id": "update_20260426183107_8c8bf1b3",
   "playbook_id": "lease",
   "target_rule_id": "liability-insurance-and-subrogation",
-  "status": "pending",
+  "status": "approved",
   "reason": "To define clear triggers for escalation based on critical negotiation points.",
   "proposed_change": {
     "section": "Escalation Logic",
@@ -11,8 +11,8 @@
   },
   "suggested_by": "lklostermair",
   "suggested_at": "2026-04-26T18:31:07.663694Z",
-  "decided_by": null,
-  "decided_at": null,
+  "decided_by": "lklostermair",
+  "decided_at": "2026-04-26T18:32:07.040070Z",
   "decision_reason": null,
   "commit_hash": null
 }

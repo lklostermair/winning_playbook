@@ -8,7 +8,7 @@
   ],
   "red_line": "Accepting liability for Landlord's 'loss of profit' or business interruption if the building is damaged.",
   "decision_logic": null,
-  "escalation_logic": null,
+  "escalation_logic": "Escalate if Landlord insists on tenant liability for Landlord's loss of profit/business interruption or rejects mutual waiver of subrogation.",
   "rationale": "Protects against building failure and indirect losses. Essential that insurance companies don't sue the startup for building-wide events.",
   "negotiation_tips": [
     "Clauses requiring the startup to indemnify the Landlord even for the Landlord’s own negligence."
@@ -17,7 +17,7 @@
   "status": "approved",
   "source_documents": [
     {
-      "filename": "vault/lease/draft_ingest/ingest_20260426075523_96d864de/sources/Lease_Playbook.docx",
+      "filename": "vault/lease/draft_ingest/ingest_20260426125648_0ffa3cdd/sources/Lease_Playbook.docx",
       "location": "Section 6"
     }
   ]

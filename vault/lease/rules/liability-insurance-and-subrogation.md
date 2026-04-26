@@ -13,7 +13,7 @@ Accepting liability for Landlord's 'loss of profit' or business interruption if 
 _Not specified._
 
 ## Escalation Logic
-_Not specified._
+Escalate if Landlord insists on tenant liability for Landlord's loss of profit/business interruption or rejects mutual waiver of subrogation.
 
 ## Rationale
 Protects against building failure and indirect losses. Essential that insurance companies don't sue the startup for building-wide events.
@@ -29,4 +29,4 @@ _Not specified._
 - Rule ID: liability-insurance-and-subrogation
 - Status: approved
 - Source Documents:
-  - vault/lease/draft_ingest/ingest_20260426075523_96d864de/sources/Lease_Playbook.docx (Section 6)
+  - vault/lease/draft_ingest/ingest_20260426125648_0ffa3cdd/sources/Lease_Playbook.docx (Section 6)
