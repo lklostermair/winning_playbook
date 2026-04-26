@@ -82,10 +82,33 @@ export type ProposedChange = {
   new_text: string;
 };
 
+export type ProposedUpdateSummary = {
+  update_id: string;
+  playbook_id: string;
+  target_rule_id: string;
+  status: "pending" | "approved" | "rejected";
+  reason: string;
+  proposed_change: ProposedChange;
+  suggested_by: string;
+  suggested_at: string;
+  git_metadata?: GitMetadata | null;
+};
+
 export type RuleUpdateDraft = {
   section: string;
   reason: string;
   new_text: string;
+};
+
+export type CreateProposedUpdateResponse = {
+  update_id: string;
+  status: "pending" | "approved" | "rejected";
+  commit_hash?: string | null;
+};
+
+export type ProposedUpdatesResponse = {
+  updates: ProposedUpdateSummary[];
+  ai_overview?: string | null;
 };
 
 export type UpdateDecision = {
@@ -179,6 +202,39 @@ export async function draftRuleUpdate(payload: {
   return request<RuleUpdateDraft>("/updates/draft", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export async function createProposedUpdate(payload: {
+  playbook_id: string;
+  target_rule_id: string;
+  reason: string;
+  proposed_change: ProposedChange;
+  suggested_by: string;
+}) {
+  return request<CreateProposedUpdateResponse>("/updates", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getProposedUpdates(playbookId: string, targetRuleId?: string) {
+  const query = new URLSearchParams({ playbook_id: playbookId });
+  if (targetRuleId) query.set("target_rule_id", targetRuleId);
+  return request<ProposedUpdatesResponse>(`/updates?${query.toString()}`);
+}
+
+export async function approveProposedUpdate(updateId: string, approvedBy: string) {
+  return request<UpdateDecision>(`/updates/${encodeURIComponent(updateId)}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ approved_by: approvedBy }),
+  });
+}
+
+export async function rejectProposedUpdate(updateId: string, rejectedBy: string, reason: string) {
+  return request<UpdateDecision>(`/updates/${encodeURIComponent(updateId)}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ rejected_by: rejectedBy, reason }),
   });
 }
 

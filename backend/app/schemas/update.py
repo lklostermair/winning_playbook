@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.schemas.ids import SafeId, SafeUpdateId
+from app.schemas.source import GitMetadata
 
 UpdateStatus = Literal["pending", "approved", "rejected"]
 
@@ -25,6 +26,7 @@ class CreateProposedUpdateRequest(BaseModel):
 class CreateProposedUpdateResponse(BaseModel):
     update_id: SafeUpdateId
     status: UpdateStatus
+    commit_hash: str | None = None
 
 
 class DraftRuleUpdateRequest(BaseModel):
@@ -56,10 +58,12 @@ class ProposedUpdateSummary(BaseModel):
     proposed_change: ProposedChange
     suggested_by: str
     suggested_at: datetime
+    git_metadata: GitMetadata | None = None
 
 
 class ListProposedUpdatesResponse(BaseModel):
     updates: list[ProposedUpdateSummary]
+    ai_overview: str | None = None
 
 
 class ApproveUpdateRequest(BaseModel):

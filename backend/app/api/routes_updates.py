@@ -11,6 +11,7 @@ from app.schemas.update import (
     DraftRuleUpdateResponse,
     ListProposedUpdatesResponse,
     RejectUpdateRequest,
+    ProposedUpdateSummary,
     UpdateDecisionResponse,
 )
 from app.services.answer_generation_service import AnswerGenerationError, GeminiAnswerGenerationService
@@ -34,12 +35,32 @@ router = APIRouter(tags=["updates"])
 
 @router.post("/updates", response_model=CreateProposedUpdateResponse)
 async def create_update(request: CreateProposedUpdateRequest) -> CreateProposedUpdateResponse:
-    service = ProposedUpdateService(VaultService(get_settings().vault_dir))
+    settings = get_settings()
+    vault_service = VaultService(settings.vault_dir)
+    service = ProposedUpdateService(vault_service)
+    git_service = GitService()
     try:
         record = await run_in_threadpool(service.create_update, request)
-    except (ProposedUpdateError, RuleNotFoundError, ValueError) as exc:
+        commit_hash = await run_in_threadpool(
+            git_service.commit_files,
+            service.update_paths(record),
+            git_service.build_playbook_commit_message(
+                record.playbook_id,
+                record.target_rule_id,
+                f"propose update {record.update_id}",
+            ),
+        )
+    except RuleNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except (ProposedUpdateError, ValueError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return CreateProposedUpdateResponse(update_id=record.update_id, status=record.status)
+    except GitServiceError as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+    return CreateProposedUpdateResponse(
+        update_id=record.update_id,
+        status=record.status,
+        commit_hash=commit_hash,
+    )
 
 
 @router.post("/updates/draft", response_model=DraftRuleUpdateResponse)
@@ -119,9 +140,65 @@ async def apply_update(request: ApplyRuleUpdateRequest) -> UpdateDecisionRespons
 
 
 @router.get("/updates", response_model=ListProposedUpdatesResponse)
-async def list_updates(playbook_id: str = "nda") -> ListProposedUpdatesResponse:
-    service = ProposedUpdateService(VaultService(get_settings().vault_dir))
-    return ListProposedUpdatesResponse(updates=await run_in_threadpool(service.list_updates, playbook_id))
+async def list_updates(
+    playbook_id: str = "nda",
+    target_rule_id: str | None = None,
+) -> ListProposedUpdatesResponse:
+    settings = get_settings()
+    vault_service = VaultService(settings.vault_dir)
+    service = ProposedUpdateService(vault_service)
+    answer_service = GeminiAnswerGenerationService(
+        project=settings.google_cloud_project,
+        location=settings.google_cloud_location,
+        model=settings.gemini_model,
+        api_key=settings.gemini_api_key,
+    )
+    git_service = GitService()
+    records = await run_in_threadpool(service.list_update_records, playbook_id)
+    records = sorted(
+        records,
+        key=lambda record: (record.target_rule_id, record.suggested_at, record.update_id),
+    )
+    updates: list[ProposedUpdateSummary] = []
+    for record in records:
+        if target_rule_id and record.target_rule_id != target_rule_id:
+            continue
+        if record.status != "pending":
+            continue
+        summary = service._summary(record)
+        try:
+            git_metadata = await run_in_threadpool(
+                git_service.get_last_change_metadata,
+                service.update_paths(record)[0],
+            )
+        except GitServiceError:
+            git_metadata = None
+        updates.append(summary.model_copy(update={"git_metadata": git_metadata}))
+    ai_overview = None
+    if target_rule_id and updates:
+        try:
+            markdown = await run_in_threadpool(
+                vault_service.read_rule_markdown,
+                playbook_id,
+                target_rule_id,
+            )
+            ai_overview = await run_in_threadpool(
+                answer_service.generate_proposed_updates_overview,
+                markdown,
+                [
+                    {
+                        "update_id": update.update_id,
+                        "status": update.status,
+                        "section": update.proposed_change.section,
+                        "reason": update.reason,
+                        "new_text": update.proposed_change.new_text,
+                    }
+                    for update in updates
+                ],
+            )
+        except (RuleNotFoundError, ValueError):
+            ai_overview = None
+    return ListProposedUpdatesResponse(updates=updates, ai_overview=ai_overview)
 
 
 @router.post("/updates/{update_id}/approve", response_model=UpdateDecisionResponse)
@@ -169,17 +246,30 @@ async def reject_update(
     update_id: str,
     request: RejectUpdateRequest,
 ) -> UpdateDecisionResponse:
-    service = ProposedUpdateService(VaultService(get_settings().vault_dir))
+    vault_service = VaultService(get_settings().vault_dir)
+    service = ProposedUpdateService(vault_service)
+    git_service = GitService()
     try:
         record = await run_in_threadpool(service.reject_update, update_id, request.rejected_by, request.reason)
+        commit_hash = await run_in_threadpool(
+            git_service.commit_files,
+            service.update_paths(record),
+            git_service.build_playbook_commit_message(
+                record.playbook_id,
+                record.target_rule_id,
+                f"reject update {record.update_id}",
+            ),
+        )
     except ProposedUpdateNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ProposedUpdateError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except GitServiceError as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
     return UpdateDecisionResponse(
         update_id=record.update_id,
         status=record.status,
-        commit_hash=None,
+        commit_hash=commit_hash,
         reindexed=False,
     )
 

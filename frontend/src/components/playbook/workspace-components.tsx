@@ -9,6 +9,7 @@ import {
   type IngestDraftDetail,
   type IngestDraftSummary,
   type PlaybookSummary,
+  type ProposedUpdateSummary,
   type RuleDetail,
   type RuleSummary,
   type SourceReference,
@@ -27,8 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-export type Role = "Business User" | "Lawyer" | "Admin";
 
 export type ChatMessage = {
   id: number;
@@ -85,12 +84,8 @@ export function VaultGraph({
   const selectedPlaybookIdSet = new Set(selectedPlaybookIds);
   const topicRadius = 92;
   const topicArc = Math.PI * 0.78;
-  const maxRulesPerPlaybook = 6;
   const allTopicNodes = playbookNodes.flatMap((playbookNode) => {
-    const playbookRules = (allRules[playbookNode.playbook.playbook_id] ?? []).slice(
-      0,
-      maxRulesPerPlaybook,
-    );
+    const playbookRules = allRules[playbookNode.playbook.playbook_id] ?? [];
     const angleFromVault = Math.atan2(playbookNode.y - vault.y, playbookNode.x - vault.x);
     return playbookRules.map((rule, index) => {
       const offset =
@@ -417,8 +412,11 @@ export function AnswerMessage({
 }
 
 export function RulePanel({
-  role,
+  adminMode,
   ruleDetail,
+  suggestions,
+  suggestionsOverview,
+  loadingSuggestions,
   updateDraft,
   onUpdateDraftChange,
   updateInstruction,
@@ -427,10 +425,15 @@ export function RulePanel({
   committingUpdate,
   onDraftUpdate,
   onSubmitUpdate,
+  onApproveSuggestion,
+  onRejectSuggestion,
   onClose,
 }: {
-  role: Role;
+  adminMode: boolean;
   ruleDetail: RuleDetail | null;
+  suggestions: ProposedUpdateSummary[];
+  suggestionsOverview: string | null;
+  loadingSuggestions: boolean;
   updateDraft: { section: string; newText: string; reason: string };
   onUpdateDraftChange: (draft: { section: string; newText: string; reason: string }) => void;
   updateInstruction: string;
@@ -439,11 +442,23 @@ export function RulePanel({
   committingUpdate: boolean;
   onDraftUpdate: () => void;
   onSubmitUpdate: () => void;
+  onApproveSuggestion: (update: ProposedUpdateSummary) => void;
+  onRejectSuggestion: (update: ProposedUpdateSummary) => void;
   onClose: () => void;
 }) {
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   if (!ruleDetail) return null;
   const rule = ruleDetail.rule;
-  const lawyerView = role !== "Business User";
+  const ruleSuggestions = suggestions.filter(
+    (suggestion) =>
+      suggestion.status === "pending" &&
+      suggestion.playbook_id === rule.playbook_id &&
+      suggestion.target_rule_id === rule.rule_id,
+  );
+  const ruleSuggestionsOverview =
+    ruleSuggestions.length > 0
+      ? suggestionsOverview || buildRuleSuggestionsFallbackOverview(ruleSuggestions)
+      : null;
 
   return (
     <aside className="hidden w-[390px] shrink-0 overflow-y-auto border-l bg-background p-4 text-[14px] leading-[1.6] text-body-text xl:block">
@@ -451,7 +466,7 @@ export function RulePanel({
         <div>
           <h2 className="text-base font-medium leading-6 text-foreground">{rule.topic}</h2>
           <span className="mt-2 inline-flex rounded-full bg-suggested-chip px-2.5 py-1 text-xs text-body-text">
-            {lawyerView ? "Lawyer audit view" : "Plain language view"}
+            {adminMode ? "Admin review" : "Suggestion mode"}
           </span>
         </div>
         <button
@@ -469,80 +484,173 @@ export function RulePanel({
         <InfoCard title="Red Line">{rule.red_line || "Not specified."}</InfoCard>
         <InfoCard title="Escalation Logic">{rule.escalation_logic || "Not specified."}</InfoCard>
 
-        {lawyerView && (
-          <>
-            <section className="rounded-lg border border-graph-selected/30 bg-graph-selected/5 p-4 shadow-[0_1px_0_rgba(0,153,153,0.12)]">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-medium text-foreground">Update Rule</h3>
-                <span className="rounded-full bg-graph-selected/10 px-2.5 py-1 text-[11px] font-medium text-graph-selected">
-                  dandelion draft
-                </span>
-              </div>
-              <div className="mt-3 space-y-2.5">
-                <textarea
-                  value={updateInstruction}
-                  onChange={(event) => onUpdateInstructionChange(event.target.value)}
-                  placeholder="Tell the assistant what should change..."
-                  className="min-h-20 w-full resize-none rounded-lg border border-graph-selected/20 bg-background/80 p-3 text-sm outline-none transition focus:border-graph-selected focus:ring-2 focus:ring-graph-selected/15"
-                />
-                <button
-                  onClick={onDraftUpdate}
-                  disabled={draftingUpdate || !updateInstruction.trim()}
-                  className="rounded-lg border border-graph-selected/30 bg-graph-selected/10 px-3 py-2 text-sm font-medium text-graph-selected transition hover:bg-graph-selected/15 disabled:opacity-50"
+        <section className="rounded-lg border bg-panel-card p-3">
+          {ruleSuggestionsOverview && (
+            <div className="mb-3 rounded-md border border-graph-selected/20 bg-graph-selected/5 px-3 py-2">
+              <div className="text-xs font-medium text-graph-selected">Dandelion overview</div>
+              <p className="mt-1 text-sm leading-5 text-body-text">{ruleSuggestionsOverview}</p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setSuggestionsOpen((current) => !current)}
+            className="flex w-full items-center justify-between gap-3 text-left"
+            aria-expanded={suggestionsOpen}
+          >
+            <span>
+              <span className="block text-sm font-medium text-foreground">Rule Suggestions</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                {loadingSuggestions
+                  ? "Loading suggestions..."
+                  : `${ruleSuggestions.length} pending`}
+              </span>
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform ${
+                suggestionsOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+          {suggestionsOpen && (
+            <div className="mt-3 space-y-2">
+              {ruleSuggestions.length === 0 && !loadingSuggestions && (
+                <p className="rounded-md border border-dashed bg-background px-3 py-3 text-sm text-muted-foreground">
+                  No suggestions for this rule yet.
+                </p>
+              )}
+              {ruleSuggestions.map((suggestion) => (
+                <div
+                  key={suggestion.update_id}
+                  className="rounded-lg border bg-background p-3 text-sm"
                 >
-                  {draftingUpdate ? "Drafting..." : "Draft with dandelion"}
-                </button>
-                <Select
-                  value={updateDraft.section}
-                  onValueChange={(section) => onUpdateDraftChange({ ...updateDraft, section })}
-                >
-                  <SelectTrigger className="h-9 rounded-lg border-graph-selected/20 focus:ring-graph-selected/20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Standard Position">Standard Position</SelectItem>
-                    <SelectItem value="Fallback Position">Fallback Position</SelectItem>
-                    <SelectItem value="Red Line">Red Line</SelectItem>
-                    <SelectItem value="Escalation Logic">Escalation Logic</SelectItem>
-                    <SelectItem value="Suggested Language">Suggested Language</SelectItem>
-                  </SelectContent>
-                </Select>
-                <textarea
-                  value={updateDraft.newText}
-                  onChange={(event) =>
-                    onUpdateDraftChange({ ...updateDraft, newText: event.target.value })
-                  }
-                  placeholder="New section text..."
-                  className="min-h-24 w-full resize-none rounded-lg border border-graph-selected/20 bg-background/80 p-3 text-sm outline-none transition focus:border-graph-selected focus:ring-2 focus:ring-graph-selected/15"
-                />
-                <input
-                  value={updateDraft.reason}
-                  onChange={(event) =>
-                    onUpdateDraftChange({ ...updateDraft, reason: event.target.value })
-                  }
-                  placeholder="Reason for legal review"
-                  className="h-10 w-full rounded-lg border border-graph-selected/20 bg-background/80 px-3 text-sm outline-none transition focus:border-graph-selected focus:ring-2 focus:ring-graph-selected/15"
-                />
-                <button
-                  onClick={onSubmitUpdate}
-                  disabled={
-                    committingUpdate || !updateDraft.newText.trim() || !updateDraft.reason.trim()
-                  }
-                  className="rounded-lg bg-graph-selected px-4 py-2 text-sm font-medium text-white transition hover:brightness-95 disabled:opacity-50"
-                >
-                  {committingUpdate ? "Updating..." : "Update & Commit"}
-                </button>
-              </div>
-            </section>
-          </>
-        )}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium text-foreground">
+                        {suggestion.proposed_change.section}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {suggestion.status} · {suggestion.suggested_by}
+                      </div>
+                    </div>
+                    {suggestion.status === "pending" && (
+                      <span className="rounded-full bg-graph-selected/10 px-2 py-0.5 text-[11px] font-medium text-graph-selected">
+                        pending
+                      </span>
+                    )}
+                  </div>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                      Reason and proposed text
+                    </summary>
+                    <p className="mt-2 text-xs leading-5 text-body-text">{suggestion.reason}</p>
+                    <p className="mt-2 whitespace-pre-wrap rounded-md bg-muted px-3 py-2 text-xs text-body-text">
+                      {suggestion.proposed_change.new_text}
+                    </p>
+                  </details>
+                  {suggestion.git_metadata && (
+                    <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+                      Saved by {suggestion.git_metadata.last_changed_by} ·{" "}
+                      {shortHash(suggestion.git_metadata.last_commit_hash)}
+                    </p>
+                  )}
+                  {adminMode && suggestion.status === "pending" && (
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onApproveSuggestion(suggestion)}
+                        className="rounded-md bg-graph-selected px-3 py-1.5 text-xs font-medium text-white hover:brightness-95"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onRejectSuggestion(suggestion)}
+                        className="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-lg border border-graph-selected/30 bg-graph-selected/5 p-4 shadow-[0_1px_0_rgba(0,153,153,0.12)]">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-medium text-foreground">
+              {adminMode ? "Update Rule" : "Suggest Improvement"}
+            </h3>
+            <span className="rounded-full bg-graph-selected/10 px-2.5 py-1 text-[11px] font-medium text-graph-selected">
+              dandelion draft
+            </span>
+          </div>
+          <div className="mt-3 space-y-2.5">
+            <textarea
+              value={updateInstruction}
+              onChange={(event) => onUpdateInstructionChange(event.target.value)}
+              placeholder="Tell the assistant what should change..."
+              className="min-h-20 w-full resize-none rounded-lg border border-graph-selected/20 bg-background/80 p-3 text-sm outline-none transition focus:border-graph-selected focus:ring-2 focus:ring-graph-selected/15"
+            />
+            <button
+              onClick={onDraftUpdate}
+              disabled={draftingUpdate || !updateInstruction.trim()}
+              className="rounded-lg border border-graph-selected/30 bg-graph-selected/10 px-3 py-2 text-sm font-medium text-graph-selected transition hover:bg-graph-selected/15 disabled:opacity-50"
+            >
+              {draftingUpdate ? "Drafting..." : "Draft with dandelion"}
+            </button>
+            <Select
+              value={updateDraft.section}
+              onValueChange={(section) => onUpdateDraftChange({ ...updateDraft, section })}
+            >
+              <SelectTrigger className="h-9 rounded-lg border-graph-selected/20 focus:ring-graph-selected/20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Standard Position">Standard Position</SelectItem>
+                <SelectItem value="Fallback Position">Fallback Position</SelectItem>
+                <SelectItem value="Red Line">Red Line</SelectItem>
+                <SelectItem value="Escalation Logic">Escalation Logic</SelectItem>
+                <SelectItem value="Suggested Language">Suggested Language</SelectItem>
+              </SelectContent>
+            </Select>
+            <textarea
+              value={updateDraft.newText}
+              onChange={(event) =>
+                onUpdateDraftChange({ ...updateDraft, newText: event.target.value })
+              }
+              placeholder="New section text..."
+              className="min-h-24 w-full resize-none rounded-lg border border-graph-selected/20 bg-background/80 p-3 text-sm outline-none transition focus:border-graph-selected focus:ring-2 focus:ring-graph-selected/15"
+            />
+            <input
+              value={updateDraft.reason}
+              onChange={(event) =>
+                onUpdateDraftChange({ ...updateDraft, reason: event.target.value })
+              }
+              placeholder="Reason for legal review"
+              className="h-10 w-full rounded-lg border border-graph-selected/20 bg-background/80 px-3 text-sm outline-none transition focus:border-graph-selected focus:ring-2 focus:ring-graph-selected/15"
+            />
+            <button
+              onClick={onSubmitUpdate}
+              disabled={
+                committingUpdate || !updateDraft.newText.trim() || !updateDraft.reason.trim()
+              }
+              className="rounded-lg bg-graph-selected px-4 py-2 text-sm font-medium text-white transition hover:brightness-95 disabled:opacity-50"
+            >
+              {committingUpdate
+                ? "Submitting..."
+                : adminMode
+                  ? "Update & Commit"
+                  : "Submit Suggestion"}
+            </button>
+          </div>
+        </section>
       </div>
-      {lawyerView && (
-        <p className="mt-6 border-t pt-3 text-[11px] leading-5 text-muted-foreground">
-          Last changed by {ruleDetail.git_metadata.last_changed_by} on{" "}
-          {formatDateTime(ruleDetail.git_metadata.last_changed_at)}.
-        </p>
-      )}
+      <p className="mt-6 border-t pt-3 text-[11px] leading-5 text-muted-foreground">
+        Last changed by {ruleDetail.git_metadata.last_changed_by} on{" "}
+        {formatDateTime(ruleDetail.git_metadata.last_changed_at)}.
+      </p>
     </aside>
   );
 }
@@ -859,6 +967,42 @@ function formatDateTime(value: string) {
 
 function formatList(values: string[]) {
   return values.length ? values.map((value) => `- ${value}`).join("\n") : "Not specified.";
+}
+
+function buildRuleSuggestionsFallbackOverview(suggestions: ProposedUpdateSummary[]) {
+  const sections = uniqueValues(
+    suggestions.map((suggestion) => suggestion.proposed_change.section),
+  );
+  const themes = uniqueValues(
+    suggestions.map((suggestion) => compactReason(suggestion.reason)),
+  ).slice(0, 3);
+  return `${suggestions.length} pending proposal${
+    suggestions.length === 1 ? "" : "s"
+  } cover ${humanList(themes) || "policy clarification"} across ${
+    humanList(sections) || "the rule text"
+  }.`;
+}
+
+function compactReason(reason: string) {
+  const cleaned = reason.trim().replace(/\.$/, "");
+  return cleaned.length > 72 ? `${cleaned.slice(0, 69).trim()}...` : cleaned;
+}
+
+function uniqueValues(values: string[]) {
+  const seen = new Set<string>();
+  return values.filter((value) => {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
+function humanList(values: string[]) {
+  if (values.length === 0) return "";
+  if (values.length === 1) return values[0];
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(", ")}, and ${values[values.length - 1]}`;
 }
 
 function slugInput(value: string) {

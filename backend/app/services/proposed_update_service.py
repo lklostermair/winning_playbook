@@ -64,9 +64,12 @@ class ProposedUpdateService:
         return record
 
     def list_updates(self, playbook_id: str) -> list[ProposedUpdateSummary]:
+        return [self._summary(record) for record in self.list_update_records(playbook_id)]
+
+    def list_update_records(self, playbook_id: str) -> list[ProposedUpdateRecord]:
         updates = []
         for path in sorted(self._updates_dir(playbook_id).glob("*.json")):
-            updates.append(self._summary(self._read_record(path)))
+            updates.append(self._read_record(path))
         return updates
 
     def approve_update(self, update_id: str, approved_by: str) -> tuple[ProposedUpdateRecord, RuleTemplate]:

@@ -5,23 +5,28 @@ import { Moon, Plus, Send, Sun, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 import {
+  approveProposedUpdate,
   applyRuleUpdate,
   askPlaybook,
+  createProposedUpdate,
   draftRuleUpdate,
   generateChatTitle,
   getHealth,
   getIdentity,
   getIngests,
   getPlaybooks,
+  getProposedUpdates,
   getRule,
   getRules,
   publishIngest,
+  rejectProposedUpdate,
   speakVoice,
   transcribeVoice,
   warmupVoiceModel,
   type GitIdentity,
   type IngestDraftSummary,
   type PlaybookSummary,
+  type ProposedUpdateSummary,
   type RuleDetail,
   type RuleSummary,
   type ConversationMessage,
@@ -146,6 +151,15 @@ function LivingPlaybookApp() {
   const [allRules, setAllRules] = useState<Record<string, RuleSummary[]>>({});
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
   const [selectedRule, setSelectedRule] = useState<RuleDetail | null>(null);
+  const [selectedRuleUpdates, setSelectedRuleUpdates] = useState<ProposedUpdateSummary[]>([]);
+  const [selectedRuleUpdatesOverview, setSelectedRuleUpdatesOverview] = useState<string | null>(
+    null,
+  );
+  const [loadingRuleUpdates, setLoadingRuleUpdates] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("dandelion-admin-mode") === "true";
+  });
   const [ingests, setIngests] = useState<IngestDraftSummary[]>([]);
   const [workWindows, setWorkWindows] = useState<WorkWindow[]>(() => [
     {
@@ -229,9 +243,42 @@ function LivingPlaybookApp() {
     [refreshGitIdentity, selectedPlaybookId],
   );
 
+  const refreshSelectedRuleUpdates = useCallback(
+    async (playbookId = selectedPlaybookId, ruleId = selectedRuleId) => {
+      if (!ruleId) {
+        setSelectedRuleUpdates([]);
+        setSelectedRuleUpdatesOverview(null);
+        return;
+      }
+      setLoadingRuleUpdates(true);
+      setSelectedRuleUpdates([]);
+      setSelectedRuleUpdatesOverview(null);
+      try {
+        const response = await getProposedUpdates(playbookId, ruleId);
+        setSelectedRuleUpdates(
+          response.updates.filter(
+            (update) => update.status === "pending" && update.target_rule_id === ruleId,
+          ),
+        );
+        setSelectedRuleUpdatesOverview(response.ai_overview ?? null);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not load rule suggestions.");
+        setSelectedRuleUpdates([]);
+        setSelectedRuleUpdatesOverview(null);
+      } finally {
+        setLoadingRuleUpdates(false);
+      }
+    },
+    [selectedPlaybookId, selectedRuleId],
+  );
+
   useEffect(() => {
     void refreshAll(selectedPlaybookId);
   }, [refreshAll, selectedPlaybookId]);
+
+  useEffect(() => {
+    void refreshSelectedRuleUpdates(selectedPlaybookId, selectedRuleId);
+  }, [refreshSelectedRuleUpdates, selectedPlaybookId, selectedRuleId]);
 
   useEffect(() => {
     void refreshGitIdentity();
@@ -257,6 +304,10 @@ function LivingPlaybookApp() {
   useEffect(() => {
     window.localStorage.setItem("living-playbook-theme", isDarkMode ? "dark" : "light");
   }, [isDarkMode]);
+
+  useEffect(() => {
+    window.localStorage.setItem("dandelion-admin-mode", String(isAdminMode));
+  }, [isAdminMode]);
 
   useEffect(() => {
     return () => {
@@ -472,16 +523,35 @@ function LivingPlaybookApp() {
     }
   }
 
-  async function updateAndCommitRule() {
+  async function submitRuleSuggestion() {
     const newText = updateDraft.newText.trim();
     const reason = updateDraft.reason.trim();
     if (!selectedRule || !newText || !reason) {
-      toast.error("Draft an update before committing.");
+      toast.error("Draft an update before submitting.");
       return;
     }
     setCommittingUpdate(true);
     try {
-      const result = await applyRuleUpdate({
+      if (isAdminMode) {
+        const result = await applyRuleUpdate({
+          playbook_id: selectedRule.playbook_id,
+          target_rule_id: selectedRule.rule.rule_id,
+          reason,
+          proposed_change: {
+            section: updateDraft.section,
+            new_text: newText,
+          },
+          approved_by: gitIdentity?.github_username || gitIdentity?.name || "admin",
+        });
+        await refreshAll(selectedRule.playbook_id);
+        setSelectedRule(await getRule(selectedRule.playbook_id, selectedRule.rule.rule_id));
+        await refreshSelectedRuleUpdates(selectedRule.playbook_id, selectedRule.rule.rule_id);
+        setUpdateDraft({ section: "Fallback Position", newText: "", reason: "" });
+        setUpdateInstruction("");
+        toast.success(`Updated and committed ${shortHash(result.commit_hash)}`);
+        return;
+      }
+      const result = await createProposedUpdate({
         playbook_id: selectedRule.playbook_id,
         target_rule_id: selectedRule.rule.rule_id,
         reason,
@@ -489,15 +559,53 @@ function LivingPlaybookApp() {
           section: updateDraft.section,
           new_text: newText,
         },
-        approved_by: gitIdentity?.github_username || gitIdentity?.name || "user",
+        suggested_by:
+          gitIdentity?.github_username ||
+          gitIdentity?.name ||
+          (isAdminMode ? "admin" : "business_user"),
       });
-      await refreshAll(selectedRule.playbook_id);
-      setSelectedRule(await getRule(selectedRule.playbook_id, selectedRule.rule.rule_id));
+      await refreshSelectedRuleUpdates(selectedRule.playbook_id, selectedRule.rule.rule_id);
       setUpdateDraft({ section: "Fallback Position", newText: "", reason: "" });
       setUpdateInstruction("");
-      toast.success(`Updated and committed ${shortHash(result.commit_hash)}`);
+      toast.success(
+        result.commit_hash
+          ? `Suggestion saved ${shortHash(result.commit_hash)}`
+          : "Suggestion saved for admin review.",
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not update rule.");
+      toast.error(error instanceof Error ? error.message : "Could not submit suggestion.");
+    } finally {
+      setCommittingUpdate(false);
+    }
+  }
+
+  async function approveRuleSuggestion(update: ProposedUpdateSummary) {
+    const approvedBy = gitIdentity?.github_username || gitIdentity?.name || "admin";
+    setCommittingUpdate(true);
+    try {
+      const result = await approveProposedUpdate(update.update_id, approvedBy);
+      await refreshAll(update.playbook_id);
+      await refreshSelectedRuleUpdates(update.playbook_id, update.target_rule_id);
+      if (selectedRuleId === update.target_rule_id) {
+        setSelectedRule(await getRule(update.playbook_id, update.target_rule_id));
+      }
+      toast.success(`Approved suggestion ${shortHash(result.commit_hash)}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not approve suggestion.");
+    } finally {
+      setCommittingUpdate(false);
+    }
+  }
+
+  async function rejectRuleSuggestion(update: ProposedUpdateSummary) {
+    const rejectedBy = gitIdentity?.github_username || gitIdentity?.name || "admin";
+    setCommittingUpdate(true);
+    try {
+      await rejectProposedUpdate(update.update_id, rejectedBy, "Rejected in admin review.");
+      await refreshSelectedRuleUpdates(update.playbook_id, update.target_rule_id);
+      toast.success("Suggestion rejected.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not reject suggestion.");
     } finally {
       setCommittingUpdate(false);
     }
@@ -826,6 +934,40 @@ function LivingPlaybookApp() {
               })}
             </div>
           </div>
+
+          <div className="mt-auto flex justify-center border-t border-sidebar-border pt-5">
+            <button
+              type="button"
+              onClick={() => setIsAdminMode((current) => !current)}
+              aria-pressed={isAdminMode}
+              aria-label={isAdminMode ? "Switch to user mode" : "Switch to admin mode"}
+              className={`relative h-9 w-[116px] shrink-0 rounded-lg border p-1 text-[11px] font-semibold uppercase tracking-[0.08em] transition ${
+                isAdminMode
+                  ? "border-graph-selected/40 bg-graph-selected/10"
+                  : "border-sidebar-border bg-active-item"
+              }`}
+            >
+              <span
+                className={`absolute top-1 h-7 w-[52px] rounded-md shadow-sm transition-all ${
+                  isAdminMode ? "left-[58px] bg-graph-selected" : "left-1 bg-sidebar-panel"
+                }`}
+              />
+              <span
+                className={`relative z-10 inline-grid h-7 w-[52px] place-items-center rounded-md transition ${
+                  isAdminMode ? "text-sidebar-label" : "text-sidebar-primary"
+                }`}
+              >
+                User
+              </span>
+              <span
+                className={`relative z-10 inline-grid h-7 w-[52px] place-items-center rounded-md transition ${
+                  isAdminMode ? "text-white" : "text-sidebar-label"
+                }`}
+              >
+                Admin
+              </span>
+            </button>
+          </div>
         </aside>
 
         <section className="relative flex min-w-0 flex-1 flex-col bg-background">
@@ -1005,8 +1147,11 @@ function LivingPlaybookApp() {
         </section>
 
         <RulePanel
-          role="Lawyer"
+          adminMode={isAdminMode}
           ruleDetail={selectedRule}
+          suggestions={selectedRuleUpdates}
+          suggestionsOverview={selectedRuleUpdatesOverview}
+          loadingSuggestions={loadingRuleUpdates}
           updateDraft={updateDraft}
           onUpdateDraftChange={setUpdateDraft}
           updateInstruction={updateInstruction}
@@ -1014,7 +1159,9 @@ function LivingPlaybookApp() {
           draftingUpdate={draftingUpdate}
           committingUpdate={committingUpdate}
           onDraftUpdate={() => void draftSelectedRuleUpdate()}
-          onSubmitUpdate={() => void updateAndCommitRule()}
+          onSubmitUpdate={() => void submitRuleSuggestion()}
+          onApproveSuggestion={(update) => void approveRuleSuggestion(update)}
+          onRejectSuggestion={(update) => void rejectRuleSuggestion(update)}
           onClose={() => setSelectedRuleId(null)}
         />
       </div>
