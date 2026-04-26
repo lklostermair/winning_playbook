@@ -9,7 +9,7 @@
   ],
   "red_line": "One-sided indemnification, any inclusion of punitive or consequential damages, or any indemnity that extends to third-party claims unrelated to the NDA",
   "decision_logic": null,
-  "escalation_logic": "Any indemnification clause or liability provision that goes beyond standard statutory liability",
+  "escalation_logic": "Any indemnification clause or liability provision that goes beyond standard statutory liability or exceeds a $200 limit.",
   "rationale": "Controls financial exposure framework",
   "negotiation_tips": [],
   "suggested_language": null,

@@ -14,7 +14,7 @@ One-sided indemnification, any inclusion of punitive or consequential damages, o
 _Not specified._
 
 ## Escalation Logic
-Any indemnification clause or liability provision that goes beyond standard statutory liability
+Any indemnification clause or liability provision that goes beyond standard statutory liability or exceeds a $200 limit.
 
 ## Rationale
 Controls financial exposure framework
