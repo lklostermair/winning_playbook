@@ -1,0 +1,18 @@
+{
+  "update_id": "update_20260426081719_74d0b4b5",
+  "playbook_id": "loan",
+  "target_rule_id": "principal-and-maturity",
+  "status": "pending",
+  "reason": "Permit event-linked maturity only when there is a real long-stop date.",
+  "proposed_change": {
+    "section": "Fallback Position",
+    "old_text": "- A term linked to a specific, identifiable event, such as the closing of a Series B funding round, with a 'long-stop' date of at least 24 months.",
+    "new_text": "A term linked to a Series B financing or similar liquidity event may be accepted only with a long-stop date of at least 24 months and no lender discretion to accelerate absent default."
+  },
+  "suggested_by": "demo_seed",
+  "suggested_at": "2026-04-26T08:17:19.212675Z",
+  "decided_by": null,
+  "decided_at": null,
+  "decision_reason": null,
+  "commit_hash": null
+}

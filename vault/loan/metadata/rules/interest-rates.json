@@ -1,0 +1,24 @@
+{
+  "playbook_id": "loan",
+  "rule_id": "interest-rates",
+  "topic": "Interest Rates",
+  "standard_position": "A fixed interest rate for the duration of the loan, or a floating rate (EURIBOR/SOFR) with a clear, enforceable cap to prevent rising costs.",
+  "fallback_positions": [
+    "Floating rate with no ceiling, but accompanied by the explicit right for the company to prepay the loan without penalty if the rate exceeds a certain threshold."
+  ],
+  "red_line": "Uncapped floating rates that automatically adjust upwards based on subjective company performance metrics or external macro-fluctuations.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "The cost of capital. For early-stage companies, interest should ideally be 'PIK' (Paid-in-Kind) to preserve cash while the startup is scaling.",
+  "negotiation_tips": [
+    "Floating rates without a clear ceiling, or 'default interest' rates that are punitively high (e.g., 15% above the base rate) upon any minor breach."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/loan/draft_ingest/ingest_20260426075109_976d283b/sources/Loan_Playbook.docx",
+      "location": "3. Interest Rates"
+    }
+  ]
+}

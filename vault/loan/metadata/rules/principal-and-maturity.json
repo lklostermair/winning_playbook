@@ -1,0 +1,24 @@
+{
+  "playbook_id": "loan",
+  "rule_id": "principal-and-maturity",
+  "topic": "Principal and Maturity",
+  "standard_position": "A fixed term of 3-5 years with a clearly defined 'bullet' repayment or an amortization schedule that aligns perfectly with the startup’s projected cash flow cycles.",
+  "fallback_positions": [
+    "A term linked to a specific, identifiable event, such as the closing of a Series B funding round, with a 'long-stop' date of at least 24 months."
+  ],
+  "red_line": "No fixed maturity date, or a maturity date shorter than the current runway, which creates immediate and unmanageable insolvency risk.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "Sets the total debt exposure. A proper maturity date ensures the company reaches the next 'value inflection point' before principal repayment becomes mandatory.",
+  "negotiation_tips": [
+    "Demand loans where the lender can demand immediate repayment at any time, which creates an uncontrollable risk for the company’s ongoing viability."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/loan/draft_ingest/ingest_20260426075109_976d283b/sources/Loan_Playbook.docx",
+      "location": "1. Principal and Maturity"
+    }
+  ]
+}

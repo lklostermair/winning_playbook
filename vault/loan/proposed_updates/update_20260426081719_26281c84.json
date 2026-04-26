@@ -1,0 +1,18 @@
+{
+  "update_id": "update_20260426081719_26281c84",
+  "playbook_id": "loan",
+  "target_rule_id": "events-of-default",
+  "status": "pending",
+  "reason": "Strengthen the red line against subjective MAC acceleration.",
+  "proposed_change": {
+    "section": "Red Line",
+    "old_text": "Immediate acceleration of the full loan balance for any 'material adverse change' in company prospects, judged solely by the lender.",
+    "new_text": "Immediate acceleration for any material adverse change, investor concern, missed forecast, or company prospect issue judged solely by the lender."
+  },
+  "suggested_by": "demo_seed",
+  "suggested_at": "2026-04-26T08:17:19.216550Z",
+  "decided_by": null,
+  "decided_at": null,
+  "decision_reason": null,
+  "commit_hash": null
+}

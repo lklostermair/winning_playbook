@@ -1,0 +1,18 @@
+{
+  "update_id": "update_20260426081719_cb3506fb",
+  "playbook_id": "loan",
+  "target_rule_id": "events-of-default",
+  "status": "pending",
+  "reason": "Add escalation for cross-default and automatic acceleration.",
+  "proposed_change": {
+    "section": "Escalation Logic",
+    "old_text": "",
+    "new_text": "Escalate cross-defaults to unrelated contracts, defaults triggered by minor reporting delays, or any acceleration right without notice and a meaningful cure period."
+  },
+  "suggested_by": "demo_seed",
+  "suggested_at": "2026-04-26T08:17:19.216754Z",
+  "decided_by": null,
+  "decided_at": null,
+  "decision_reason": null,
+  "commit_hash": null
+}

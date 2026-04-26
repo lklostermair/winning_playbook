@@ -1,0 +1,24 @@
+{
+  "playbook_id": "loan",
+  "rule_id": "drawdown-conditions",
+  "topic": "Drawdown Conditions",
+  "standard_position": "Drawdown is subject only to clear, objective requirements: signed board resolutions, proof of corporate insurance, and a valid legal opinion on corporate capacity.",
+  "fallback_positions": [
+    "Drawdown linked to achieving specific, measurable financial milestones, such as reaching a set monthly recurring revenue (MRR) or completing a product launch phase."
+  ],
+  "red_line": "Lender has absolute, unmediated discretion to refuse funding for any reason, even if the startup has fully complied with all contractual obligations.",
+  "decision_logic": null,
+  "escalation_logic": null,
+  "rationale": "Defines the hurdles to actually receive the cash. Startups must ensure these are objective so the lender cannot arbitrarily back out of the agreement.",
+  "negotiation_tips": [
+    "Subjective 'Material Adverse Change' (MAC) clauses or conditions based on the lender’s 'sole satisfaction,' which allow the lender to escape the deal if the market shifts."
+  ],
+  "suggested_language": null,
+  "status": "approved",
+  "source_documents": [
+    {
+      "filename": "vault/loan/draft_ingest/ingest_20260426075109_976d283b/sources/Loan_Playbook.docx",
+      "location": "2. Drawdown Conditions"
+    }
+  ]
+}
