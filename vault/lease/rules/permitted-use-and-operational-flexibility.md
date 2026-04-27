@@ -13,7 +13,7 @@ Clause that triggers rent increases or lease termination automatically if the st
 _Not specified._
 
 ## Escalation Logic
-If Landlord proposes a Red Line clause or unreasonably withholds consent for a change in use, escalate to legal counsel for review and strategic guidance.
+_Not specified._
 
 ## Rationale
 Startups evolve rapidly; office needs change from R&D to showrooms to studios. The lease must not stifle this, or it becomes a liability for growth.
@@ -29,4 +29,4 @@ _Not specified._
 - Rule ID: permitted-use-and-operational-flexibility
 - Status: approved
 - Source Documents:
-  - vault/lease/draft_ingest/ingest_20260426075523_96d864de/sources/Lease_Playbook.docx (Section 1)
+  - vault/lease/draft_ingest/ingest_20260426125648_0ffa3cdd/sources/Lease_Playbook.docx (Section 1)

@@ -29,4 +29,4 @@ _Not specified._
 - Rule ID: reinstatement-and-restoration
 - Status: approved
 - Source Documents:
-  - vault/lease/draft_ingest/ingest_20260426075523_96d864de/sources/Lease_Playbook.docx (Section 5)
+  - vault/lease/draft_ingest/ingest_20260426125648_0ffa3cdd/sources/Lease_Playbook.docx (Section 5)

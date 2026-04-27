@@ -30,4 +30,4 @@ _Not specified._
 - Rule ID: return-destruction-of-backups
 - Status: approved
 - Source Documents:
-  - vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx (Sheet: Sample NDA Playbook, Clause # 5)
+  - vault/nda/draft_ingest/ingest_20260426085755_e5114f7a/sources/Sample NDA Playbook.csv.xlsx (Return/Destruction of Backups)

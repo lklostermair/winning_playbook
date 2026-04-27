@@ -7,7 +7,7 @@
     "Convert unilateral to bilateral by mirroring obligations",
     "Accept a unilateral NDA only if our organization is the sole disclosing party (i.e., you are the beneficiary)"
   ],
-  "red_line": "Unilateral NDA where you are receiving party only, if deal value exceeds $200.",
+  "red_line": "Unilateral NDA where you are recieving party only",
   "decision_logic": null,
   "escalation_logic": "Counterparty refuses bilateral and you will share info",
   "rationale": "Determines if our info is protected",
@@ -16,8 +16,8 @@
   "status": "approved",
   "source_documents": [
     {
-      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
-      "location": "Sheet: Sample NDA Playbook, Clause # 1"
+      "filename": "vault/nda/draft_ingest/ingest_20260426085755_e5114f7a/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Type of NDA"
     }
   ]
 }

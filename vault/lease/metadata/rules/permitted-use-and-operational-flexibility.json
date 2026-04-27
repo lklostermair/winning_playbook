@@ -8,7 +8,7 @@
   ],
   "red_line": "Clause that triggers rent increases or lease termination automatically if the startup changes its primary business focus.",
   "decision_logic": null,
-  "escalation_logic": "If Landlord proposes a Red Line clause or unreasonably withholds consent for a change in use, escalate to legal counsel for review and strategic guidance.",
+  "escalation_logic": null,
   "rationale": "Startups evolve rapidly; office needs change from R&D to showrooms to studios. The lease must not stifle this, or it becomes a liability for growth.",
   "negotiation_tips": [
     "Restrictive use clauses like 'Only for the purpose of a law firm' or 'Software coding only,' which kill the startup's ability to pivot its business model."
@@ -17,7 +17,7 @@
   "status": "approved",
   "source_documents": [
     {
-      "filename": "vault/lease/draft_ingest/ingest_20260426075523_96d864de/sources/Lease_Playbook.docx",
+      "filename": "vault/lease/draft_ingest/ingest_20260426125648_0ffa3cdd/sources/Lease_Playbook.docx",
       "location": "Section 1"
     }
   ]

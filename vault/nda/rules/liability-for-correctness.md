@@ -30,4 +30,4 @@ _Not specified._
 - Rule ID: liability-for-correctness
 - Status: approved
 - Source Documents:
-  - vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx (Sheet: Sample NDA Playbook, Clause # 6)
+  - vault/nda/draft_ingest/ingest_20260426085755_e5114f7a/sources/Sample NDA Playbook.csv.xlsx (Liability for Correctness)

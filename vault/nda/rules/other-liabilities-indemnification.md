@@ -14,7 +14,7 @@ One-sided indemnification, any inclusion of punitive or consequential damages, o
 _Not specified._
 
 ## Escalation Logic
-Any indemnification clause or liability provision that goes beyond standard statutory liability or exceeds a $200 limit.
+Any indemnification clause or liability provision that goes beyond standard statutory liability
 
 ## Rationale
 Controls financial exposure framework
@@ -30,4 +30,4 @@ _Not specified._
 - Rule ID: other-liabilities-indemnification
 - Status: approved
 - Source Documents:
-  - vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx (Sheet: Sample NDA Playbook, Clause # 8)
+  - vault/nda/draft_ingest/ingest_20260426085755_e5114f7a/sources/Sample NDA Playbook.csv.xlsx (Other Liabilities / Indemnification)

@@ -8,7 +8,7 @@ Bilateral (mutual) NDA
 - Accept a unilateral NDA only if our organization is the sole disclosing party (i.e., you are the beneficiary)
 
 ## Red Line
-Unilateral NDA where you are receiving party only, if deal value exceeds $200.
+Unilateral NDA where you are recieving party only
 
 ## Decision Logic
 _Not specified._
@@ -30,4 +30,4 @@ _Not specified._
 - Rule ID: type-of-nda
 - Status: approved
 - Source Documents:
-  - vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx (Sheet: Sample NDA Playbook, Clause # 1)
+  - vault/nda/draft_ingest/ingest_20260426085755_e5114f7a/sources/Sample NDA Playbook.csv.xlsx (Type of NDA)

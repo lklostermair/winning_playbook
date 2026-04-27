@@ -9,15 +9,15 @@
   ],
   "red_line": "Exclusive jurisdiction of the counterparty's local courts with no arbitration option, especially in cross-border agreements",
   "decision_logic": null,
-  "escalation_logic": "Escalation is triggered for disputes with a value exceeding 200 dollars.",
+  "escalation_logic": "Provides for ordinary courts in the counterparty's jurisdiction with no alternative",
   "rationale": "Protects confidentiality of proceedings",
   "negotiation_tips": [],
   "suggested_language": null,
   "status": "approved",
   "source_documents": [
     {
-      "filename": "vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx",
-      "location": "Sheet: Sample NDA Playbook, Clause # 13"
+      "filename": "vault/nda/draft_ingest/ingest_20260426085755_e5114f7a/sources/Sample NDA Playbook.csv.xlsx",
+      "location": "Dispute Resolution / Language"
     }
   ]
 }

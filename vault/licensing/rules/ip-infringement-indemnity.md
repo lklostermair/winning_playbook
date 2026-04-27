@@ -29,4 +29,4 @@ _Not specified._
 - Rule ID: ip-infringement-indemnity
 - Status: approved
 - Source Documents:
-  - vault/licensing/draft_ingest/ingest_20260426075212_a01c807c/sources/Licensing_Playbook.docx (Section 5: IP Infringement Indemnity)
+  - vault/licensing/draft_ingest/ingest_20260426183312_16d6b37c/sources/Licensing_Playbook.docx (Section 5)

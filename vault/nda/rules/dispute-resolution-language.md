@@ -14,7 +14,7 @@ Exclusive jurisdiction of the counterparty's local courts with no arbitration op
 _Not specified._
 
 ## Escalation Logic
-Escalation is triggered for disputes with a value exceeding 200 dollars.
+Provides for ordinary courts in the counterparty's jurisdiction with no alternative
 
 ## Rationale
 Protects confidentiality of proceedings
@@ -30,4 +30,4 @@ _Not specified._
 - Rule ID: dispute-resolution-language
 - Status: approved
 - Source Documents:
-  - vault/nda/draft_ingest/ingest_20260425191039_bb43cd68/sources/Sample NDA Playbook.csv.xlsx (Sheet: Sample NDA Playbook, Clause # 13)
+  - vault/nda/draft_ingest/ingest_20260426085755_e5114f7a/sources/Sample NDA Playbook.csv.xlsx (Dispute Resolution / Language)
